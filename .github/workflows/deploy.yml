@@ -28,16 +28,6 @@ on:
         description: "Container image tag to deploy (e.g. commit SHA, staging-latest, prod-latest, or v1.0.0)"
         required: false
         default: "latest"
-  push:
-    branches:
-      - main
-    paths:
-      - 'helm/pulsewatch/values-prod.yaml'
-  pull_request:
-    branches:
-      - develop
-    paths:
-      - 'helm/pulsewatch/values-staging.yaml'
 
 env:
   AWS_REGION: us-east-1
@@ -59,19 +49,9 @@ jobs:
       - name: Determine Target Namespace & Values File
         id: target
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            ENV="${{ github.event.inputs.environment }}"
-            TAG="${{ github.event.inputs.image_tag }}"
-            SERVICE="${{ github.event.inputs.service }}"
-          elif [ "${{ github.ref_name }}" = "main" ]; then
-            ENV="production"
-            TAG="prod-latest"
-            SERVICE="all"
-          else
-            ENV="staging"
-            TAG="staging-latest"
-            SERVICE="all"
-          fi
+          ENV="${{ github.event.inputs.environment }}"
+          TAG="${{ github.event.inputs.image_tag }}"
+          SERVICE="${{ github.event.inputs.service }}"
 
           if [ "$ENV" = "production" ]; then
             echo "namespace=production" >> "$GITHUB_OUTPUT"

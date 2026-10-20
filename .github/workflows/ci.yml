@@ -2,17 +2,6 @@ name: Infrastructure CI (Terraform & Helm Lint)
 
 on:
   pull_request:
-    branches:
-      - main
-      - develop
-  push:
-    branches:
-      - main
-      - develop
-    paths:
-      - 'terraform/**'
-      - 'helm/**'
-      - '.github/workflows/ci.yml'
 
 jobs:
   validate-terraform:

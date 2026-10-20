@@ -15,13 +15,6 @@ on:
         description: "Optional S3 bucket name for state (leave blank to auto-discover or use secret)"
         required: false
         default: ""
-  push:
-    branches:
-      - main
-    paths:
-      - 'terraform/**'
-      - '!terraform/backend_setup/**'
-      - '!terraform/*.md'
 
 env:
   AWS_REGION: us-east-1
@@ -55,11 +48,7 @@ jobs:
         id: config
         working-directory: terraform
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            ACTION="${{ github.event.inputs.action }}"
-          else
-            ACTION="apply"
-          fi
+          ACTION="${{ github.event.inputs.action }}"
 
           if [ -n "${{ github.event.inputs.terraform_state_bucket }}" ]; then
             BUCKET="${{ github.event.inputs.terraform_state_bucket }}"
