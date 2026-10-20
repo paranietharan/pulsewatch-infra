@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pulsewatch.fullname" . }}-web
+  labels:
+    {{- include "pulsewatch.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  type: {{ .Values.web.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.web.service.port | default 80 }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "pulsewatch.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: web

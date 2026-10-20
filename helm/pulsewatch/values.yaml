@@ -1,0 +1,238 @@
+# ==============================================================================
+# PulseWatch Helm Chart Values
+# Production configuration for AWS EKS deployment
+# ==============================================================================
+
+global:
+  environment: "production"
+  logLevel: "info"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ------------------------------------------------------------------------------
+# Kubernetes Service Account
+# ------------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  name: "pulsewatch-sa"
+  annotations: {}
+    # Uncomment to attach AWS IAM Role via IRSA:
+    # eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/pulsewatch-eks-app-role"
+
+# ------------------------------------------------------------------------------
+# PostgreSQL Database Configuration
+# Connects to AWS RDS PostgreSQL or an external managed instance
+# ------------------------------------------------------------------------------
+database:
+  # Host endpoint returned by Terraform output (rds_address)
+  host: "pulsewatch-eks-postgres.changeme.us-east-1.rds.amazonaws.com"
+  port: 5432
+  dbName: "pulsewatch"
+  user: "pulsewatch_admin"
+  password: "REPLACE_WITH_STRONG_DB_PASSWORD"
+  sslmode: "require"
+  # Set overrideUrl if you have a full pre-built connection string
+  overrideUrl: ""
+
+# ------------------------------------------------------------------------------
+# RabbitMQ Message Broker Configuration
+# Deploys statefulset in-cluster, or connects to Amazon MQ
+# ------------------------------------------------------------------------------
+rabbitmq:
+  enabled: true
+  image:
+    repository: "rabbitmq"
+    tag: "3.13-management-alpine"
+    pullPolicy: "IfNotPresent"
+  auth:
+    username: "pulsewatch"
+    password: "REPLACE_WITH_STRONG_RABBITMQ_PASSWORD"
+  persistence:
+    enabled: true
+    storageClass: "gp3"
+    size: "10Gi"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  # If enabled is false, configure externalUrl for Amazon MQ RabbitMQ:
+  externalUrl: ""
+  overrideUrl: ""
+
+# ------------------------------------------------------------------------------
+# SMTP Notification Service (Amazon SES or custom SMTP)
+# ------------------------------------------------------------------------------
+smtp:
+  host: "email-smtp.us-east-1.amazonaws.com"
+  port: 587
+  user: "REPLACE_WITH_SES_SMTP_USER"
+  password: "REPLACE_WITH_SES_SMTP_PASSWORD"
+  from: "PulseWatch Alerts <alerts@pulsewatch.dev>"
+
+# ------------------------------------------------------------------------------
+# Database Migration Runner (Helm pre-install/pre-upgrade Hook)
+# ------------------------------------------------------------------------------
+migrator:
+  enabled: true
+  image:
+    repository: "REPLACE_WITH_ECR_REGISTRY/pulsewatch-db-migrator"
+    tag: "latest"
+    pullPolicy: "Always"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# ------------------------------------------------------------------------------
+# REST API Microservice (pulsewatch-api)
+# ------------------------------------------------------------------------------
+api:
+  replicaCount: 2
+  image:
+    repository: "REPLACE_WITH_ECR_REGISTRY/pulsewatch-api"
+    tag: "latest"
+    pullPolicy: "Always"
+  jwtSecret: "CHANGE_THIS_TO_A_CRYPTOGRAPHICALLY_SECURE_JWT_SECRET_KEY_MIN_32_CHARS"
+  publicUrl: "https://api.pulsewatch.example.com"
+  clientIpStrategy: "proxy_hops"
+  clientIpHeader: ""
+  clientIpTrustedProxies: 1
+  service:
+    type: ClusterIP
+    port: 8080
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+# ------------------------------------------------------------------------------
+# Next.js Web Dashboard (pulse-watch-web)
+# ------------------------------------------------------------------------------
+web:
+  replicaCount: 2
+  image:
+    repository: "REPLACE_WITH_ECR_REGISTRY/pulsewatch-web"
+    tag: "latest"
+    pullPolicy: "Always"
+  publicUrl: "https://pulsewatch.example.com"
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+# ------------------------------------------------------------------------------
+# Scheduler Daemon (pulsewatch-scheduler)
+# Evaluates due monitors and dispatches check jobs to RabbitMQ
+# ------------------------------------------------------------------------------
+scheduler:
+  replicaCount: 1
+  image:
+    repository: "REPLACE_WITH_ECR_REGISTRY/pulsewatch-scheduler"
+    tag: "latest"
+    pullPolicy: "Always"
+  pollIntervalSec: 5
+  batchSize: 50
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# ------------------------------------------------------------------------------
+# Probe Worker Pool (pulsewatch-probe-worker)
+# Concurrently executes HTTP and TCP health probes
+# ------------------------------------------------------------------------------
+probeWorker:
+  replicaCount: 3
+  image:
+    repository: "REPLACE_WITH_ECR_REGISTRY/pulsewatch-probe-worker"
+    tag: "latest"
+    pullPolicy: "Always"
+  concurrency: 20
+  prefetch: 20
+  region: "us-east-1"
+  allowInternalProbes: false
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 75
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+# ------------------------------------------------------------------------------
+# Notification Dispatcher Service (pulsewatch-notification-service)
+# Dispatches emails and webhooks for incidents and state transitions
+# ------------------------------------------------------------------------------
+notificationService:
+  replicaCount: 2
+  image:
+    repository: "REPLACE_WITH_ECR_REGISTRY/pulsewatch-notification-service"
+    tag: "latest"
+    pullPolicy: "Always"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# ------------------------------------------------------------------------------
+# Ingress (AWS ALB Ingress Controller)
+# ------------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: "alb"
+  annotations:
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/group.name: "pulsewatch-alb"
+    # Supply your ACM Certificate ARN for HTTPS:
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id"
+  hosts:
+    - host: "pulsewatch.example.com"
+      paths:
+        - path: "/"
+          pathType: "Prefix"
+          service: "web"
+          port: 80
+    - host: "api.pulsewatch.example.com"
+      paths:
+        - path: "/"
+          pathType: "Prefix"
+          service: "api"
+          port: 8080
+  tls: []

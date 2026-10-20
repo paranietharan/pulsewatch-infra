@@ -1,0 +1,99 @@
+name: Build, Push, and Deploy PulseWatch to AWS EKS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: pulsewatch-eks
+  HELM_RELEASE_NAME: pulsewatch
+  K8S_NAMESPACE: pulsewatch
+
+jobs:
+  build-and-deploy:
+    name: Build Images & Deploy to EKS
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Docker Images
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          SERVICES=(
+            "pulsewatch-api:./pulsewatch-api:./pulsewatch-api/Dockerfile"
+            "pulsewatch-web:./pulse-watch-web:./pulse-watch-web/Dockerfile"
+            "pulsewatch-scheduler:./pulsewatch-scheduler:./pulsewatch-scheduler/Dockerfile"
+            "pulsewatch-probe-worker:./pulsewatch-probe-worker:./pulsewatch-probe-worker/Dockerfile"
+            "pulsewatch-notification-service:./pulsewatch-notification-service:./pulsewatch-notification-service/Dockerfile"
+            "pulsewatch-db-migrator:./pulse-watch-db:./pulse-watch-db/Dockerfile"
+          )
+
+          for item in "${SERVICES[@]}"; do
+            IFS=":" read -r SVC_NAME SVC_CONTEXT SVC_DOCKERFILE <<< "$item"
+            echo "Building and pushing $SVC_NAME..."
+            docker build \
+              -f "$SVC_DOCKERFILE" \
+              -t "$ECR_REGISTRY/$SVC_NAME:$IMAGE_TAG" \
+              -t "$ECR_REGISTRY/$SVC_NAME:latest" \
+              "$SVC_CONTEXT"
+
+            docker push "$ECR_REGISTRY/$SVC_NAME:$IMAGE_TAG"
+            docker push "$ECR_REGISTRY/$SVC_NAME:latest"
+          done
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Deploy Helm Chart
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          helm upgrade --install ${{ env.HELM_RELEASE_NAME }} ./helm/pulsewatch \
+            --namespace ${{ env.K8S_NAMESPACE }} \
+            --create-namespace \
+            --set api.image.repository="$ECR_REGISTRY/pulsewatch-api" \
+            --set api.image.tag="$IMAGE_TAG" \
+            --set web.image.repository="$ECR_REGISTRY/pulsewatch-web" \
+            --set web.image.tag="$IMAGE_TAG" \
+            --set scheduler.image.repository="$ECR_REGISTRY/pulsewatch-scheduler" \
+            --set scheduler.image.tag="$IMAGE_TAG" \
+            --set probeWorker.image.repository="$ECR_REGISTRY/pulsewatch-probe-worker" \
+            --set probeWorker.image.tag="$IMAGE_TAG" \
+            --set notificationService.image.repository="$ECR_REGISTRY/pulsewatch-notification-service" \
+            --set notificationService.image.tag="$IMAGE_TAG" \
+            --set migrator.image.repository="$ECR_REGISTRY/pulsewatch-db-migrator" \
+            --set migrator.image.tag="$IMAGE_TAG" \
+            --wait \
+            --timeout 10m

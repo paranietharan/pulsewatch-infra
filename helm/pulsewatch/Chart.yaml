@@ -1,0 +1,17 @@
+apiVersion: v2
+name: pulsewatch
+description: Production-grade Helm chart for PulseWatch Distributed Uptime Monitoring Platform on AWS EKS
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - pulsewatch
+  - monitoring
+  - uptime
+  - observability
+  - golang
+  - nextjs
+home: https://github.com/paranietharan/pulsewatch
+maintainers:
+  - name: PulseWatch DevOps Team
+    email: devops@pulsewatch.dev

@@ -1,0 +1,43 @@
+{{- if .Values.rabbitmq.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pulsewatch.fullname" . }}-rabbitmq
+  labels:
+    {{- include "pulsewatch.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  type: ClusterIP
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: amqp
+      protocol: TCP
+    - name: management
+      port: 15672
+      targetPort: management
+      protocol: TCP
+  selector:
+    {{- include "pulsewatch.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pulsewatch.fullname" . }}-rabbitmq-headless
+  labels:
+    {{- include "pulsewatch.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  clusterIP: None
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: amqp
+    - name: management
+      port: 15672
+      targetPort: management
+  selector:
+    {{- include "pulsewatch.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+{{- end }}

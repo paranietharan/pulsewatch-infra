@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pulsewatch.fullname" . }}-scheduler
+  labels:
+    {{- include "pulsewatch.labels" . | nindent 4 }}
+    app.kubernetes.io/component: scheduler
+spec:
+  replicas: {{ .Values.scheduler.replicaCount | default 1 }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "pulsewatch.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: scheduler
+  template:
+    metadata:
+      labels:
+        {{- include "pulsewatch.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: scheduler
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.serviceAccount.name | default (include "pulsewatch.fullname" .) }}
+      containers:
+        - name: scheduler
+          image: "{{ .Values.scheduler.image.repository }}:{{ .Values.scheduler.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.scheduler.image.pullPolicy | default "IfNotPresent" }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-secrets
+                  key: DATABASE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-secrets
+                  key: RABBITMQ_URL
+            - name: SCHEDULER_POLL_INTERVAL_SEC
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-config
+                  key: SCHEDULER_POLL_INTERVAL_SEC
+            - name: SCHEDULER_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-config
+                  key: SCHEDULER_BATCH_SIZE
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-config
+                  key: LOG_LEVEL
+          resources:
+            {{- toYaml .Values.scheduler.resources | nindent 12 }}

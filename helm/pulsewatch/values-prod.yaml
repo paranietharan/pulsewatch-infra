@@ -1,0 +1,40 @@
+# Production Environment Overrides for PulseWatch
+global:
+  environment: "production"
+  logLevel: "warn"
+
+api:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+
+probeWorker:
+  replicaCount: 5
+  concurrency: 50
+  prefetch: 50
+  autoscaling:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 30
+
+notificationService:
+  replicaCount: 3
+
+scheduler:
+  replicaCount: 1
+
+web:
+  replicaCount: 3
+
+rabbitmq:
+  persistence:
+    size: "30Gi"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi

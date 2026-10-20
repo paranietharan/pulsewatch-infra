@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pulsewatch.fullname" . }}-probe-worker
+  labels:
+    {{- include "pulsewatch.labels" . | nindent 4 }}
+    app.kubernetes.io/component: probe-worker
+spec:
+  {{- if not .Values.probeWorker.autoscaling.enabled }}
+  replicas: {{ .Values.probeWorker.replicaCount | default 2 }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "pulsewatch.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: probe-worker
+  template:
+    metadata:
+      labels:
+        {{- include "pulsewatch.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: probe-worker
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.serviceAccount.name | default (include "pulsewatch.fullname" .) }}
+      containers:
+        - name: probe-worker
+          image: "{{ .Values.probeWorker.image.repository }}:{{ .Values.probeWorker.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.probeWorker.image.pullPolicy | default "IfNotPresent" }}
+          env:
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-secrets
+                  key: RABBITMQ_URL
+            - name: PROBE_WORKER_CONCURRENCY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-config
+                  key: PROBE_WORKER_CONCURRENCY
+            - name: PROBE_WORKER_PREFETCH
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-config
+                  key: PROBE_WORKER_PREFETCH
+            - name: PROBE_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-config
+                  key: PROBE_REGION
+            - name: ALLOW_INTERNAL_PROBES
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-config
+                  key: ALLOW_INTERNAL_PROBES
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-config
+                  key: LOG_LEVEL
+          resources:
+            {{- toYaml .Values.probeWorker.resources | nindent 12 }}

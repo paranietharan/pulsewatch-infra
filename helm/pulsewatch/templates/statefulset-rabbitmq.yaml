@@ -1,0 +1,83 @@
+{{- if .Values.rabbitmq.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "pulsewatch.fullname" . }}-rabbitmq
+  labels:
+    {{- include "pulsewatch.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  serviceName: {{ include "pulsewatch.fullname" . }}-rabbitmq-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "pulsewatch.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rabbitmq
+  template:
+    metadata:
+      labels:
+        {{- include "pulsewatch.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: rabbitmq
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: rabbitmq
+          image: "{{ .Values.rabbitmq.image.repository }}:{{ .Values.rabbitmq.image.tag }}"
+          imagePullPolicy: {{ .Values.rabbitmq.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: amqp
+              containerPort: 5672
+              protocol: TCP
+            - name: management
+              containerPort: 15672
+              protocol: TCP
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-secrets
+                  key: RABBITMQ_DEFAULT_USER
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "pulsewatch.fullname" . }}-secrets
+                  key: RABBITMQ_DEFAULT_PASS
+          livenessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 2
+          resources:
+            {{- toYaml .Values.rabbitmq.resources | nindent 12 }}
+          volumeMounts:
+            - name: rabbitmq-data
+              mountPath: /var/lib/rabbitmq
+  {{- if .Values.rabbitmq.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: rabbitmq-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ .Values.rabbitmq.persistence.storageClass | default "gp3" }}
+        resources:
+          requests:
+            storage: {{ .Values.rabbitmq.persistence.size | default "10Gi" }}
+  {{- else }}
+  volumes:
+    - name: rabbitmq-data
+      emptyDir: {}
+  {{- end }}
+{{- end }}
