@@ -1,32 +1,84 @@
-# Production Environment Overrides for PulseWatch
+# ==============================================================================
+# Production Environment Overlays
+# Merged on top of values.yaml for namespace: production
+# Follows DRY best practices: contains ONLY environment-specific deltas
+# ==============================================================================
+
 global:
   environment: "production"
   logLevel: "warn"
 
+database:
+  dbName: "pulsewatch"
+  sslmode: "require"
+
+# ------------------------------------------------------------------------------
+# Production Microservice Sizing (High-Availability & Auto-scaling profile)
+# ------------------------------------------------------------------------------
 api:
   replicaCount: 3
+  publicUrl: "https://api.pulsewatch.example.com"
   autoscaling:
-    enabled: true
     minReplicas: 3
     maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 75
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+web:
+  replicaCount: 3
+  publicUrl: "https://pulsewatch.example.com"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
 
 probeWorker:
   replicaCount: 5
   concurrency: 50
   prefetch: 50
   autoscaling:
-    enabled: true
     minReplicas: 5
     maxReplicas: 30
+    targetCPUUtilizationPercentage: 75
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1500m
+      memory: 1Gi
 
 notificationService:
   replicaCount: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
 
 scheduler:
   replicaCount: 1
-
-web:
-  replicaCount: 3
+  pollIntervalSec: 5
+  batchSize: 100
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
 
 rabbitmq:
   persistence:
@@ -38,3 +90,23 @@ rabbitmq:
     limits:
       cpu: 2000m
       memory: 2Gi
+
+# ------------------------------------------------------------------------------
+# Production Ingress & ALB Group
+# ------------------------------------------------------------------------------
+ingress:
+  annotations:
+    alb.ingress.kubernetes.io/group.name: "pulsewatch-production-alb"
+  hosts:
+    - host: "pulsewatch.example.com"
+      paths:
+        - path: "/"
+          pathType: "Prefix"
+          service: "web"
+          port: 80
+    - host: "api.pulsewatch.example.com"
+      paths:
+        - path: "/"
+          pathType: "Prefix"
+          service: "api"
+          port: 8080

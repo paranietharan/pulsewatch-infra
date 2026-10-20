@@ -1,3 +1,7 @@
+# ==============================================================================
+# PulseWatch Infrastructure - Terraform Variables Example
+# ==============================================================================
+
 # AWS Region & Environment
 aws_region  = "us-east-1"
 environment = "prod"
@@ -18,10 +22,16 @@ node_group_min_size     = 2
 node_group_max_size     = 6
 node_disk_size          = 50
 
+# Multi-Environment Namespaces
+staging_namespace       = "staging"
+production_namespace    = "production"
+enable_namespace_quotas = false
+
 # AWS RDS PostgreSQL
 enable_rds               = true
 db_instance_class        = "db.t4g.medium"
-db_name                  = "pulsewatch"
+db_name                  = "pulsewatch"          # Production DB name
+staging_db_name          = "pulsewatch_staging"  # Staging DB name
 db_username              = "pulsewatch_admin"
 db_password              = "YourSuperSecretDbPassw0rd!" # Or leave blank to auto-generate
 db_allocated_storage     = 20
@@ -31,7 +41,12 @@ db_multi_az              = false # Set to true for production high availability 
 # ECR Container Registries
 enable_ecr = true
 
-# Domain & Ingress
-domain_name         = "pulsewatch.yourdomain.com"
-acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id"
-deploy_pulsewatch_helm = false # Set to true to deploy helm via Terraform, or false to use Helm CLI/CI-CD
+# Domains & Ingress
+domain_name             = "pulsewatch.yourdomain.com"
+staging_domain_name     = "staging.pulsewatch.yourdomain.com"
+production_domain_name  = "pulsewatch.yourdomain.com"
+acm_certificate_arn     = "arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id"
+
+# Helm Deployment Automation (Set to true to deploy via Terraform, or false to use scripts/CI-CD)
+deploy_staging_helm    = false
+deploy_production_helm = false

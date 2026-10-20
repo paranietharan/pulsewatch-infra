@@ -1,4 +1,4 @@
-# Terraform
+# Terraform Local State & Binary Cache
 **/.terraform/*
 *.tfstate
 *.tfstate.*
@@ -12,12 +12,14 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+.terraform.lock.hcl
+*.tfplan
 
-# Helm & Kubernetes
+# Helm & Kubernetes Local Outputs
 *.tgz
 kubeconfig
 
-# OS & IDE
+# OS & Editor Files
 .DS_Store
 .idea/
 .vscode/

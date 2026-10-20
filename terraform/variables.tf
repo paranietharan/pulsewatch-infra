@@ -162,18 +162,63 @@ variable "enable_ecr" {
 }
 
 # ------------------------------------------------------------------------------
+# Kubernetes Namespaces & Multi-Environment Variables
+# ------------------------------------------------------------------------------
+variable "staging_namespace" {
+  description = "Kubernetes namespace for the staging environment"
+  type        = string
+  default     = "staging"
+}
+
+variable "production_namespace" {
+  description = "Kubernetes namespace for the production environment"
+  type        = string
+  default     = "production"
+}
+
+variable "enable_namespace_quotas" {
+  description = "Apply resource quotas to staging and production namespaces to prevent resource starvation"
+  type        = bool
+  default     = false
+}
+
+variable "staging_db_name" {
+  description = "PostgreSQL database name for staging environment"
+  type        = string
+  default     = "pulsewatch_staging"
+}
+
+# ------------------------------------------------------------------------------
 # PulseWatch Helm Release Variables
 # ------------------------------------------------------------------------------
-variable "deploy_pulsewatch_helm" {
-  description = "Set to true to automatically deploy the PulseWatch Helm chart using Terraform"
+variable "deploy_staging_helm" {
+  description = "Set to true to deploy PulseWatch Helm release to the staging namespace using Terraform"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_production_helm" {
+  description = "Set to true to deploy PulseWatch Helm release to the production namespace using Terraform"
   type        = bool
   default     = false
 }
 
 variable "domain_name" {
-  description = "Primary domain name for PulseWatch (e.g. pulsewatch.dev or example.com)"
+  description = "Base domain name for PulseWatch (e.g. pulsewatch.dev or example.com)"
   type        = string
   default     = "example.com"
+}
+
+variable "staging_domain_name" {
+  description = "Domain name for staging environment (e.g. staging.pulsewatch.example.com)"
+  type        = string
+  default     = ""
+}
+
+variable "production_domain_name" {
+  description = "Domain name for production environment (e.g. pulsewatch.example.com)"
+  type        = string
+  default     = ""
 }
 
 variable "acm_certificate_arn" {
@@ -181,3 +226,4 @@ variable "acm_certificate_arn" {
   type        = string
   default     = ""
 }
+

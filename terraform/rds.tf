@@ -65,7 +65,7 @@ resource "aws_db_parameter_group" "pg16" {
 
   parameter {
     name  = "rds.force_ssl"
-    value = "0"
+    value = "1"
   }
 
   tags = {
@@ -92,10 +92,10 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids = [aws_security_group.rds[0].id]
   parameter_group_name   = aws_db_parameter_group.pg16[0].name
 
-  multi_az               = var.db_multi_az
-  publicly_accessible    = false
-  skip_final_snapshot    = true
-  deletion_protection    = false
+  multi_az            = var.db_multi_az
+  publicly_accessible = false
+  skip_final_snapshot = var.environment != "prod"
+  deletion_protection = var.environment == "prod"
 
   backup_retention_period = var.db_backup_retention_days
   backup_window           = "03:00-04:00"

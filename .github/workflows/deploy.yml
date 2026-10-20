@@ -1,20 +1,51 @@
-name: Build, Push, and Deploy PulseWatch to AWS EKS
+name: Deploy Helm Release to AWS EKS (Staging & Production)
 
 on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target Environment / Namespace"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+      service:
+        description: "Service to Deploy (or 'all')"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - pulsewatch-api
+          - pulse-watch-web
+          - pulsewatch-scheduler
+          - pulsewatch-probe-worker
+          - pulsewatch-notification-service
+          - pulse-watch-db
+      image_tag:
+        description: "Container image tag to deploy (e.g. commit SHA, staging-latest, prod-latest, or v1.0.0)"
+        required: false
+        default: "latest"
   push:
     branches:
       - main
-  workflow_dispatch:
+    paths:
+      - 'helm/pulsewatch/values-prod.yaml'
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - 'helm/pulsewatch/values-staging.yaml'
 
 env:
   AWS_REGION: us-east-1
   EKS_CLUSTER_NAME: pulsewatch-eks
-  HELM_RELEASE_NAME: pulsewatch
-  K8S_NAMESPACE: pulsewatch
 
 jobs:
-  build-and-deploy:
-    name: Build Images & Deploy to EKS
+  deploy-helm:
+    name: Deploy Helm Release
     runs-on: ubuntu-latest
 
     permissions:
@@ -22,8 +53,39 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout Source Code
+      - name: Checkout Infrastructure Code
         uses: actions/checkout@v4
+
+      - name: Determine Target Namespace & Values File
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+            TAG="${{ github.event.inputs.image_tag }}"
+            SERVICE="${{ github.event.inputs.service }}"
+          elif [ "${{ github.ref_name }}" = "main" ]; then
+            ENV="production"
+            TAG="prod-latest"
+            SERVICE="all"
+          else
+            ENV="staging"
+            TAG="staging-latest"
+            SERVICE="all"
+          fi
+
+          if [ "$ENV" = "production" ]; then
+            echo "namespace=production" >> "$GITHUB_OUTPUT"
+            echo "release_name=pulsewatch-production" >> "$GITHUB_OUTPUT"
+            echo "values_file=./helm/pulsewatch/values-prod.yaml" >> "$GITHUB_OUTPUT"
+          else
+            echo "namespace=staging" >> "$GITHUB_OUTPUT"
+            echo "release_name=pulsewatch-staging" >> "$GITHUB_OUTPUT"
+            echo "values_file=./helm/pulsewatch/values-staging.yaml" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "environment=$ENV" >> "$GITHUB_OUTPUT"
+          echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "service=$SERVICE" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -32,41 +94,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Log in to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and Push Docker Images
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Resolve AWS Account ID & ECR Registry
+        id: ecr
         run: |
-          SERVICES=(
-            "pulsewatch-api:./pulsewatch-api:./pulsewatch-api/Dockerfile"
-            "pulsewatch-web:./pulse-watch-web:./pulse-watch-web/Dockerfile"
-            "pulsewatch-scheduler:./pulsewatch-scheduler:./pulsewatch-scheduler/Dockerfile"
-            "pulsewatch-probe-worker:./pulsewatch-probe-worker:./pulsewatch-probe-worker/Dockerfile"
-            "pulsewatch-notification-service:./pulsewatch-notification-service:./pulsewatch-notification-service/Dockerfile"
-            "pulsewatch-db-migrator:./pulse-watch-db:./pulse-watch-db/Dockerfile"
-          )
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          REGISTRY="${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
+          echo "registry=$REGISTRY" >> "$GITHUB_OUTPUT"
 
-          for item in "${SERVICES[@]}"; do
-            IFS=":" read -r SVC_NAME SVC_CONTEXT SVC_DOCKERFILE <<< "$item"
-            echo "Building and pushing $SVC_NAME..."
-            docker build \
-              -f "$SVC_DOCKERFILE" \
-              -t "$ECR_REGISTRY/$SVC_NAME:$IMAGE_TAG" \
-              -t "$ECR_REGISTRY/$SVC_NAME:latest" \
-              "$SVC_CONTEXT"
-
-            docker push "$ECR_REGISTRY/$SVC_NAME:$IMAGE_TAG"
-            docker push "$ECR_REGISTRY/$SVC_NAME:latest"
-          done
-
-      - name: Install Helm
+      - name: Install Helm & Kubectl
         uses: azure/setup-helm@v4
         with:
           version: v3.14.0
@@ -75,25 +110,73 @@ jobs:
         run: |
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
 
+      - name: Ensure Target Kubernetes Namespace Exists
+        run: |
+          kubectl create namespace ${{ steps.target.outputs.namespace }} --dry-run=client -o yaml | kubectl apply -f -
+          kubectl label namespace ${{ steps.target.outputs.namespace }} environment=${{ steps.target.outputs.namespace }} --overwrite || true
+
       - name: Deploy Helm Chart
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          TAG: ${{ steps.target.outputs.image_tag }}
+          TARGET_SERVICE: ${{ steps.target.outputs.service }}
         run: |
-          helm upgrade --install ${{ env.HELM_RELEASE_NAME }} ./helm/pulsewatch \
-            --namespace ${{ env.K8S_NAMESPACE }} \
-            --create-namespace \
-            --set api.image.repository="$ECR_REGISTRY/pulsewatch-api" \
-            --set api.image.tag="$IMAGE_TAG" \
-            --set web.image.repository="$ECR_REGISTRY/pulsewatch-web" \
-            --set web.image.tag="$IMAGE_TAG" \
-            --set scheduler.image.repository="$ECR_REGISTRY/pulsewatch-scheduler" \
-            --set scheduler.image.tag="$IMAGE_TAG" \
-            --set probeWorker.image.repository="$ECR_REGISTRY/pulsewatch-probe-worker" \
-            --set probeWorker.image.tag="$IMAGE_TAG" \
-            --set notificationService.image.repository="$ECR_REGISTRY/pulsewatch-notification-service" \
-            --set notificationService.image.tag="$IMAGE_TAG" \
-            --set migrator.image.repository="$ECR_REGISTRY/pulsewatch-db-migrator" \
-            --set migrator.image.tag="$IMAGE_TAG" \
-            --wait \
-            --timeout 10m
+          echo "Deploying release '${{ steps.target.outputs.release_name }}' into namespace '${{ steps.target.outputs.namespace }}'"
+          echo "Target service: $TARGET_SERVICE | Image tag: $TAG"
+
+          HELM_CMD=(
+            helm upgrade --install ${{ steps.target.outputs.release_name }} ./helm/pulsewatch
+            --namespace ${{ steps.target.outputs.namespace }}
+            -f ./helm/pulsewatch/values.yaml
+            -f ${{ steps.target.outputs.values_file }}
+          )
+
+          case "$TARGET_SERVICE" in
+            pulsewatch-api)
+              HELM_CMD+=(--set api.image.repository="$ECR_REGISTRY/pulsewatch-api" --set api.image.tag="$TAG")
+              ;;
+            pulse-watch-web)
+              HELM_CMD+=(--set web.image.repository="$ECR_REGISTRY/pulsewatch-web" --set web.image.tag="$TAG")
+              ;;
+            pulsewatch-scheduler)
+              HELM_CMD+=(--set scheduler.image.repository="$ECR_REGISTRY/pulsewatch-scheduler" --set scheduler.image.tag="$TAG")
+              ;;
+            pulsewatch-probe-worker)
+              HELM_CMD+=(--set probeWorker.image.repository="$ECR_REGISTRY/pulsewatch-probe-worker" --set probeWorker.image.tag="$TAG")
+              ;;
+            pulsewatch-notification-service)
+              HELM_CMD+=(--set notificationService.image.repository="$ECR_REGISTRY/pulsewatch-notification-service" --set notificationService.image.tag="$TAG")
+              ;;
+            pulse-watch-db)
+              HELM_CMD+=(--set migrator.image.repository="$ECR_REGISTRY/pulsewatch-db-migrator" --set migrator.image.tag="$TAG")
+              ;;
+            all)
+              HELM_CMD+=(
+                --set api.image.repository="$ECR_REGISTRY/pulsewatch-api" --set api.image.tag="$TAG"
+                --set web.image.repository="$ECR_REGISTRY/pulsewatch-web" --set web.image.tag="$TAG"
+                --set scheduler.image.repository="$ECR_REGISTRY/pulsewatch-scheduler" --set scheduler.image.tag="$TAG"
+                --set probeWorker.image.repository="$ECR_REGISTRY/pulsewatch-probe-worker" --set probeWorker.image.tag="$TAG"
+                --set notificationService.image.repository="$ECR_REGISTRY/pulsewatch-notification-service" --set notificationService.image.tag="$TAG"
+                --set migrator.image.repository="$ECR_REGISTRY/pulsewatch-db-migrator" --set migrator.image.tag="$TAG"
+              )
+              ;;
+          esac
+
+          HELM_CMD+=(--wait --timeout 10m)
+
+          "${HELM_CMD[@]}"
+
+      - name: Verify Pods & Ingress
+        run: |
+          echo "=================================================================="
+          echo "Pods in namespace: ${{ steps.target.outputs.namespace }}"
+          echo "=================================================================="
+          kubectl get pods -n ${{ steps.target.outputs.namespace }} -o wide
+          echo ""
+          kubectl get ingress -n ${{ steps.target.outputs.namespace }}
+
+          echo "### 🚀 Helm Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "- **Namespace**: \`${{ steps.target.outputs.namespace }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release**: \`${{ steps.target.outputs.release_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service**: \`${{ steps.target.outputs.service }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image Tag**: \`${{ steps.target.outputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY

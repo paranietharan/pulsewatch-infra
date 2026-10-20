@@ -1,0 +1,107 @@
+name: Terraform Infrastructure (AWS EKS & Cloud)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform Action to execute"
+        required: true
+        type: choice
+        default: "plan"
+        options:
+          - plan
+          - apply
+      terraform_state_bucket:
+        description: "Optional S3 bucket name for state (leave blank to auto-discover or use secret)"
+        required: false
+        default: ""
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - '!terraform/backend_setup/**'
+      - '!terraform/*.md'
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  terraform:
+    name: Terraform Run
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout Infrastructure Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Resolve S3 State Bucket & Action
+        id: config
+        working-directory: terraform
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ACTION="${{ github.event.inputs.action }}"
+          else
+            ACTION="apply"
+          fi
+
+          if [ -n "${{ github.event.inputs.terraform_state_bucket }}" ]; then
+            BUCKET="${{ github.event.inputs.terraform_state_bucket }}"
+          elif [ -n "${{ secrets.TF_STATE_BUCKET }}" ]; then
+            BUCKET="${{ secrets.TF_STATE_BUCKET }}"
+          else
+            ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+            # Find bucket starting with pulsewatch-tf-state if exists
+            BUCKET=$(aws s3api list-buckets --query "Buckets[?starts_with(Name, 'pulsewatch-tf-state')].Name | [0]" --output text 2>/dev/null || echo "")
+            if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
+              BUCKET="pulsewatch-tf-state-${ACCOUNT_ID}"
+            fi
+          fi
+
+          echo "action=$ACTION" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
+          echo "Selected Action: $ACTION"
+          echo "Using S3 State Bucket: $BUCKET"
+
+      - name: Terraform Init (S3 Backend & DynamoDB Locking)
+        working-directory: terraform
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ steps.config.outputs.bucket }}" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="dynamodb_table=pulsewatch-terraform-locks" \
+            -backend-config="encrypt=true"
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        if: ${{ steps.config.outputs.action == 'apply' }}
+        working-directory: terraform
+        run: terraform apply -auto-approve tfplan
+
+      - name: Post Execution Summary
+        working-directory: terraform
+        run: |
+          echo "### 🌍 Terraform Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action**: \`${{ steps.config.outputs.action }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **State Bucket**: \`${{ steps.config.outputs.bucket }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lock Table**: \`pulsewatch-terraform-locks\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region**: \`${{ env.AWS_REGION }}\`" >> $GITHUB_STEP_SUMMARY

@@ -22,6 +22,18 @@ serviceAccount:
     # eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/pulsewatch-eks-app-role"
 
 # ------------------------------------------------------------------------------
+# Security Context Defaults (Least-Privilege Pod Hardening)
+# ------------------------------------------------------------------------------
+podSecurityContext:
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# ------------------------------------------------------------------------------
 # PostgreSQL Database Configuration
 # Connects to AWS RDS PostgreSQL or an external managed instance
 # ------------------------------------------------------------------------------

@@ -1,0 +1,9 @@
+# Sample backend configuration file
+# To initialize terraform with this backend:
+#   terraform init -backend-config=backend.conf
+
+bucket         = "pulsewatch-tf-state-xxxxxx" # Replace with bucket name from backend_setup output
+key            = "eks/terraform.tfstate"
+region         = "us-east-1"
+dynamodb_table = "pulsewatch-terraform-locks"
+encrypt        = true

@@ -14,7 +14,7 @@ locals {
 }
 
 resource "aws_ecr_repository" "repos" {
-  for_each             = var.enable_ecr ? toset(locals.services) : []
+  for_each             = var.enable_ecr ? toset(local.services) : toset([])
   name                 = each.key
   image_tag_mutability = "MUTABLE"
 
@@ -28,7 +28,7 @@ resource "aws_ecr_repository" "repos" {
 }
 
 resource "aws_ecr_lifecycle_policy" "repos" {
-  for_each   = var.enable_ecr ? toset(locals.services) : []
+  for_each   = var.enable_ecr ? toset(local.services) : toset([])
   repository = aws_ecr_repository.repos[each.key].name
 
   policy = jsonencode({

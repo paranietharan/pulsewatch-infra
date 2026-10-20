@@ -67,3 +67,46 @@ output "alb_controller_role_arn" {
   description = "IAM Role ARN for AWS Load Balancer Controller"
   value       = aws_iam_role.aws_load_balancer_controller.arn
 }
+
+output "staging_namespace" {
+  description = "Kubernetes namespace for Staging environment"
+  value       = kubernetes_namespace.staging.metadata[0].name
+}
+
+output "production_namespace" {
+  description = "Kubernetes namespace for Production environment"
+  value       = kubernetes_namespace.production.metadata[0].name
+}
+
+output "staging_domain" {
+  description = "Domain name for Staging environment"
+  value       = local.staging_domain
+}
+
+output "production_domain" {
+  description = "Domain name for Production environment"
+  value       = local.production_domain
+}
+
+output "staging_database_url" {
+  description = "PostgreSQL connection URI for Staging environment"
+  value       = var.enable_rds ? "postgres://${var.db_username}:${local.db_password}@${aws_db_instance.postgres[0].address}:5432/${var.staging_db_name}?sslmode=require" : ""
+  sensitive   = true
+}
+
+output "production_database_url" {
+  description = "PostgreSQL connection URI for Production environment"
+  value       = var.enable_rds ? "postgres://${var.db_username}:${local.db_password}@${aws_db_instance.postgres[0].address}:5432/${var.db_name}?sslmode=require" : ""
+  sensitive   = true
+}
+
+output "check_staging_pods_cmd" {
+  description = "Command to inspect staging pods"
+  value       = "kubectl get pods -n ${kubernetes_namespace.staging.metadata[0].name}"
+}
+
+output "check_production_pods_cmd" {
+  description = "Command to inspect production pods"
+  value       = "kubectl get pods -n ${kubernetes_namespace.production.metadata[0].name}"
+}
+

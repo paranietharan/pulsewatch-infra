@@ -174,8 +174,8 @@ resource "aws_security_group" "node" {
   }
 
   tags = {
-    Name                                           = "${var.cluster_name}-node-sg"
-    "kubernetes.io/cluster/${var.cluster_name}"     = "owned"
+    Name                                        = "${var.cluster_name}-node-sg"
+    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
 }
 

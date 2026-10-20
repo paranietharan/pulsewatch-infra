@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Build & Push PulseWatch Container Images to AWS ECR
+# Usage:
+#   ./scripts/build-and-push.sh [image_tag] [aws_region] [source_dir]
+# Examples:
+#   ./scripts/build-and-push.sh latest
+#   ./scripts/build-and-push.sh v1.0.0 us-east-1 ../pulsewatch
 # ==============================================================================
 
 set -euo pipefail
 
-# Configuration Defaults
-AWS_REGION="${AWS_REGION:-us-east-1}"
+# Configuration Parameters (CLI arguments take precedence over environment variables)
+IMAGE_TAG="${1:-${IMAGE_TAG:-latest}}"
+AWS_REGION="${2:-${AWS_REGION:-us-east-1}}"
+SOURCE_DIR="${3:-${SOURCE_DIR:-../pulsewatch}}"
 AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "")}"
-IMAGE_TAG="${IMAGE_TAG:-latest}"
-SOURCE_DIR="${SOURCE_DIR:-../pulsewatch}"
 
 if [ -z "$AWS_ACCOUNT_ID" ]; then
   echo "ERROR: Could not resolve AWS_ACCOUNT_ID. Please export AWS_ACCOUNT_ID or configure AWS CLI."
@@ -52,14 +57,24 @@ for item in "${SERVICES[@]}"; do
   echo "Remote:   ${REMOTE_IMAGE}"
   echo "---------------------------------------------------------------------"
 
+  BUILD_TAGS=("-t" "$REMOTE_IMAGE")
+  if [ "$IMAGE_TAG" != "latest" ]; then
+    BUILD_TAGS+=("-t" "${ECR_REGISTRY}/${SVC_NAME}:latest")
+  fi
+
   docker build \
     --platform linux/amd64 \
     -f "$SVC_DOCKERFILE" \
-    -t "$REMOTE_IMAGE" \
+    "${BUILD_TAGS[@]}" \
     "$SVC_CONTEXT"
 
   echo "--> Pushing ${REMOTE_IMAGE}..."
   docker push "$REMOTE_IMAGE"
+
+  if [ "$IMAGE_TAG" != "latest" ]; then
+    echo "--> Pushing ${ECR_REGISTRY}/${SVC_NAME}:latest..."
+    docker push "${ECR_REGISTRY}/${SVC_NAME}:latest"
+  fi
 done
 
 echo ""

@@ -64,16 +64,96 @@ resource "helm_release" "aws_load_balancer_controller" {
 }
 
 # ------------------------------------------------------------------------------
-# Optional: Deploy PulseWatch Application Helm Chart directly via Terraform
+# Staging & Production Domain Locals
 # ------------------------------------------------------------------------------
-resource "helm_release" "pulsewatch" {
-  count     = var.deploy_pulsewatch_helm ? 1 : 0
-  name      = "pulsewatch"
+locals {
+  staging_domain    = var.staging_domain_name != "" ? var.staging_domain_name : "staging.${var.domain_name}"
+  production_domain = var.production_domain_name != "" ? var.production_domain_name : var.domain_name
+}
+
+# ------------------------------------------------------------------------------
+# PulseWatch Helm Release - Staging Environment (Namespace: staging)
+# ------------------------------------------------------------------------------
+resource "helm_release" "pulsewatch_staging" {
+  count     = var.deploy_staging_helm ? 1 : 0
+  name      = "pulsewatch-staging"
   chart     = "${path.module}/../helm/pulsewatch"
-  namespace = "pulsewatch"
-  create_namespace = true
+  namespace = kubernetes_namespace.staging.metadata[0].name
 
   values = [
+    file("${path.module}/../helm/pulsewatch/values.yaml"),
+    file("${path.module}/../helm/pulsewatch/values-staging.yaml"),
+    yamlencode({
+      database = {
+        host     = var.enable_rds ? aws_db_instance.postgres[0].address : "pulsewatch-postgresql"
+        port     = 5432
+        dbName   = var.staging_db_name
+        user     = var.db_username
+        password = local.db_password
+        sslmode  = var.enable_rds ? "require" : "disable"
+      }
+      ingress = {
+        enabled = true
+        annotations = merge(
+          {
+            "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
+            "alb.ingress.kubernetes.io/target-type" = "ip"
+            "alb.ingress.kubernetes.io/group.name"  = "pulsewatch-staging-alb"
+            "alb.ingress.kubernetes.io/listen-ports" = jsonencode([
+              { "HTTP" = 80 },
+              { "HTTPS" = 443 }
+            ])
+          },
+          var.acm_certificate_arn != "" ? { "alb.ingress.kubernetes.io/certificate-arn" = var.acm_certificate_arn } : {}
+        )
+        hosts = [
+          {
+            host = local.staging_domain
+            paths = [
+              {
+                path     = "/"
+                pathType = "Prefix"
+                service  = "web"
+                port     = 80
+              }
+            ]
+          },
+          {
+            host = "api.${local.staging_domain}"
+            paths = [
+              {
+                path     = "/"
+                pathType = "Prefix"
+                service  = "api"
+                port     = 8080
+              }
+            ]
+          }
+        ]
+      }
+    })
+  ]
+
+  depends_on = [
+    aws_eks_node_group.main,
+    kubernetes_namespace.staging,
+    helm_release.aws_load_balancer_controller,
+    aws_db_instance.postgres
+  ]
+}
+
+# ------------------------------------------------------------------------------
+# PulseWatch Helm Release - Production Environment (Namespace: production)
+# ------------------------------------------------------------------------------
+resource "helm_release" "pulsewatch_production" {
+  count     = var.deploy_production_helm ? 1 : 0
+  name      = "pulsewatch-production"
+  chart     = "${path.module}/../helm/pulsewatch"
+  namespace = kubernetes_namespace.production.metadata[0].name
+
+  values = [
+    file("${path.module}/../helm/pulsewatch/values.yaml"),
+    file("${path.module}/../helm/pulsewatch/values-prod.yaml"),
     yamlencode({
       database = {
         host     = var.enable_rds ? aws_db_instance.postgres[0].address : "pulsewatch-postgresql"
@@ -85,33 +165,38 @@ resource "helm_release" "pulsewatch" {
       }
       ingress = {
         enabled = true
-        annotations = {
-          "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
-          "alb.ingress.kubernetes.io/target-type" = "ip"
-          "alb.ingress.kubernetes.io/listen-ports" = jsonencode([
-            {"HTTP" = 80},
-            {"HTTPS" = 443}
-          ])
-          "alb.ingress.kubernetes.io/certificate-arn" = var.acm_certificate_arn
-        }
+        annotations = merge(
+          {
+            "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
+            "alb.ingress.kubernetes.io/target-type" = "ip"
+            "alb.ingress.kubernetes.io/group.name"  = "pulsewatch-production-alb"
+            "alb.ingress.kubernetes.io/listen-ports" = jsonencode([
+              { "HTTP" = 80 },
+              { "HTTPS" = 443 }
+            ])
+          },
+          var.acm_certificate_arn != "" ? { "alb.ingress.kubernetes.io/certificate-arn" = var.acm_certificate_arn } : {}
+        )
         hosts = [
           {
-            host = var.domain_name
+            host = local.production_domain
             paths = [
               {
                 path     = "/"
                 pathType = "Prefix"
                 service  = "web"
+                port     = 80
               }
             ]
           },
           {
-            host = "api.${var.domain_name}"
+            host = "api.${local.production_domain}"
             paths = [
               {
                 path     = "/"
                 pathType = "Prefix"
                 service  = "api"
+                port     = 8080
               }
             ]
           }
@@ -122,6 +207,7 @@ resource "helm_release" "pulsewatch" {
 
   depends_on = [
     aws_eks_node_group.main,
+    kubernetes_namespace.production,
     helm_release.aws_load_balancer_controller,
     aws_db_instance.postgres
   ]
