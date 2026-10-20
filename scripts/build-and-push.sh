@@ -12,7 +12,7 @@ set -euo pipefail
 
 # Configuration Parameters (CLI arguments take precedence over environment variables)
 IMAGE_TAG="${1:-${IMAGE_TAG:-latest}}"
-AWS_REGION="${2:-${AWS_REGION:-us-east-1}}"
+AWS_REGION="${2:-${AWS_REGION:-ap-south-1}}"
 SOURCE_DIR="${3:-${SOURCE_DIR:-../pulsewatch}}"
 AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "")}"
 

@@ -39,7 +39,7 @@ securityContext:
 # ------------------------------------------------------------------------------
 database:
   # Host endpoint returned by Terraform output (rds_address)
-  host: "pulsewatch-eks-postgres.changeme.us-east-1.rds.amazonaws.com"
+  host: "pulsewatch-eks-postgres.changeme.ap-south-1.rds.amazonaws.com"
   port: 5432
   dbName: "pulsewatch"
   user: "pulsewatch_admin"
@@ -80,7 +80,7 @@ rabbitmq:
 # SMTP Notification Service (Amazon SES or custom SMTP)
 # ------------------------------------------------------------------------------
 smtp:
-  host: "email-smtp.us-east-1.amazonaws.com"
+  host: "email-smtp.ap-south-1.amazonaws.com"
   port: 587
   user: "REPLACE_WITH_SES_SMTP_USER"
   password: "REPLACE_WITH_SES_SMTP_PASSWORD"
@@ -187,7 +187,7 @@ probeWorker:
     pullPolicy: "Always"
   concurrency: 20
   prefetch: 20
-  region: "us-east-1"
+  region: "ap-south-1"
   allowInternalProbes: false
   autoscaling:
     enabled: true
@@ -233,7 +233,7 @@ ingress:
     alb.ingress.kubernetes.io/ssl-redirect: "443"
     alb.ingress.kubernetes.io/group.name: "pulsewatch-alb"
     # Supply your ACM Certificate ARN for HTTPS:
-    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id"
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-south-1:123456789012:certificate/your-cert-id"
   hosts:
     - host: "pulsewatch.example.com"
       paths:

@@ -21,7 +21,7 @@ terraform {
 variable "aws_region" {
   description = "AWS region for Terraform state storage"
   type        = string
-  default     = "us-east-1"
+  default     = "ap-south-1"
 }
 
 variable "project_name" {

@@ -31,7 +31,7 @@ case "$ENV_TARGET" in
     echo ""
     echo "Examples:"
     echo "  $0 staging"
-    echo "  $0 staging v1.2.0 123456789012.dkr.ecr.us-east-1.amazonaws.com"
+    echo "  $0 staging v1.2.0 123456789012.dkr.ecr.ap-south-1.amazonaws.com"
     echo "  $0 production"
     echo "  $0 production sha-abc1234"
     exit 1

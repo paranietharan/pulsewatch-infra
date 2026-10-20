@@ -27,7 +27,7 @@ terraform {
   # Remote state backend in Amazon S3 with DynamoDB state locking
   backend "s3" {
     key            = "eks/terraform.tfstate"
-    region         = "us-east-1"
+    region         = "ap-south-1"
     dynamodb_table = "pulsewatch-terraform-locks"
     encrypt        = true
   }

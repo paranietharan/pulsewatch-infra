@@ -3,7 +3,7 @@
 # ==============================================================================
 
 # AWS Region & Environment
-aws_region  = "us-east-1"
+aws_region  = "ap-south-1"
 environment = "prod"
 
 # EKS Cluster
@@ -12,7 +12,7 @@ cluster_version = "1.30"
 
 # VPC Configuration
 vpc_cidr           = "10.0.0.0/16"
-availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+availability_zones = ["ap-south-1a", "ap-south-1b", "ap-south-1c"]
 single_nat_gateway = true # Set to false for full multi-AZ NAT redundancy in critical production
 
 # Worker Node Sizing
@@ -45,7 +45,7 @@ enable_ecr = true
 domain_name             = "pulsewatch.yourdomain.com"
 staging_domain_name     = "staging.pulsewatch.yourdomain.com"
 production_domain_name  = "pulsewatch.yourdomain.com"
-acm_certificate_arn     = "arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id"
+acm_certificate_arn     = "arn:aws:acm:ap-south-1:123456789012:certificate/your-cert-id"
 
 # Helm Deployment Automation (Set to true to deploy via Terraform, or false to use scripts/CI-CD)
 deploy_staging_helm    = false

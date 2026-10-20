@@ -4,6 +4,6 @@
 
 bucket         = "pulsewatch-tf-state-xxxxxx" # Replace with bucket name from backend_setup output
 key            = "eks/terraform.tfstate"
-region         = "us-east-1"
+region         = "ap-south-1"
 dynamodb_table = "pulsewatch-terraform-locks"
 encrypt        = true
