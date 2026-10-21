@@ -108,4 +108,30 @@ resource "aws_db_instance" "postgres" {
   }
 }
 
+# ------------------------------------------------------------------------------
+# Store RDS Master Credentials in AWS Secrets Manager
+# ------------------------------------------------------------------------------
+resource "aws_secretsmanager_secret" "rds_credentials" {
+  count                   = var.enable_rds ? 1 : 0
+  name                    = "${var.cluster_name}-rds-credentials"
+  recovery_window_in_days = 0
+
+  tags = {
+    Name = "${var.cluster_name}-rds-credentials"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "rds_credentials" {
+  count     = var.enable_rds ? 1 : 0
+  secret_id = aws_secretsmanager_secret.rds_credentials[0].id
+  secret_string = jsonencode({
+    engine   = "postgres"
+    host     = aws_db_instance.postgres[0].address
+    port     = aws_db_instance.postgres[0].port
+    database = aws_db_instance.postgres[0].db_name
+    username = aws_db_instance.postgres[0].username
+    password = local.db_password
+  })
+}
+
 
