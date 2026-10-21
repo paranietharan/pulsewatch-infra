@@ -24,8 +24,7 @@ serviceAccount:
 # ------------------------------------------------------------------------------
 # Security Context Defaults (Least-Privilege Pod Hardening)
 # ------------------------------------------------------------------------------
-podSecurityContext:
-  runAsNonRoot: true
+podSecurityContext: {}
 
 securityContext:
   allowPrivilegeEscalation: false

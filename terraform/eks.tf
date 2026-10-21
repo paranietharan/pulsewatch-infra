@@ -249,6 +249,30 @@ resource "aws_eks_addon" "aws_ebs_csi_driver" {
 }
 
 # ------------------------------------------------------------------------------
+# StorageClass gp3 (AWS EBS CSI Driver)
+# ------------------------------------------------------------------------------
+resource "kubernetes_storage_class" "gp3" {
+  metadata {
+    name = "gp3"
+    annotations = {
+      "storageclass.kubernetes.io/is-default-class" = "true"
+    }
+  }
+
+  storage_provisioner    = "ebs.csi.aws.com"
+  volume_binding_mode    = "WaitForFirstConsumer"
+  allow_volume_expansion = true
+
+  parameters = {
+    type      = "gp3"
+    fsType    = "ext4"
+    encrypted = "true"
+  }
+
+  depends_on = [aws_eks_addon.aws_ebs_csi_driver]
+}
+
+# ------------------------------------------------------------------------------
 # EKS Cluster Access Entries (Enables both local admin and CI/CD access)
 # ------------------------------------------------------------------------------
 data "aws_caller_identity" "current" {}
