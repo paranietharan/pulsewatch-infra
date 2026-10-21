@@ -20,7 +20,7 @@ node_instance_types     = ["t3.large"]
 node_group_desired_size = 3
 node_group_min_size     = 2
 node_group_max_size     = 6
-node_disk_size          = 50
+node_disk_size          = 20
 
 # Multi-Environment Namespaces
 staging_namespace       = "staging"
@@ -33,19 +33,19 @@ db_instance_class        = "db.t4g.medium"
 db_name                  = "pulsewatch"          # Production DB name
 staging_db_name          = "pulsewatch_staging"  # Staging DB name
 db_username              = "pulsewatch_admin"
-db_password              = "YourSuperSecretDbPassw0rd!" # Or leave blank to auto-generate
+db_password              = ""                    # Leave empty to automatically generate a secure 24-character random password
 db_allocated_storage     = 20
-db_max_allocated_storage = 100
+db_max_allocated_storage = 50
 db_multi_az              = false # Set to true for production high availability failover
 
 # ECR Container Registries
 enable_ecr = true
 
-# Domains & Ingress
-domain_name             = "pulsewatch.yourdomain.com"
-staging_domain_name     = "staging.pulsewatch.yourdomain.com"
-production_domain_name  = "pulsewatch.yourdomain.com"
-acm_certificate_arn     = "arn:aws:acm:ap-south-1:123456789012:certificate/your-cert-id"
+# Domains & Ingress (Optional: leave empty if you do not have a custom domain or ACM certificate yet)
+domain_name            = ""
+staging_domain_name    = ""
+production_domain_name = ""
+acm_certificate_arn    = ""
 
 # Helm Deployment Automation (Set to true to deploy via Terraform, or false to use scripts/CI-CD)
 deploy_staging_helm    = false

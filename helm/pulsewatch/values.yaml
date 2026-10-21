@@ -39,7 +39,7 @@ securityContext:
 # ------------------------------------------------------------------------------
 database:
   # Host endpoint returned by Terraform output (rds_address)
-  host: "pulsewatch-eks-postgres.changeme.ap-south-1.rds.amazonaws.com"
+  host: ""
   port: 5432
   dbName: "pulsewatch"
   user: "pulsewatch_admin"
@@ -64,7 +64,7 @@ rabbitmq:
   persistence:
     enabled: true
     storageClass: "gp3"
-    size: "10Gi"
+    size: "5Gi"
   resources:
     requests:
       cpu: 250m
@@ -84,7 +84,7 @@ smtp:
   port: 587
   user: "REPLACE_WITH_SES_SMTP_USER"
   password: "REPLACE_WITH_SES_SMTP_PASSWORD"
-  from: "PulseWatch Alerts <alerts@pulsewatch.dev>"
+  from: "" # e.g. "PulseWatch Alerts <alerts@yourdomain.com>"
 
 # ------------------------------------------------------------------------------
 # Database Migration Runner (Helm pre-install/pre-upgrade Hook)
@@ -113,7 +113,7 @@ api:
     tag: "latest"
     pullPolicy: "Always"
   jwtSecret: "CHANGE_THIS_TO_A_CRYPTOGRAPHICALLY_SECURE_JWT_SECRET_KEY_MIN_32_CHARS"
-  publicUrl: "https://api.pulsewatch.example.com"
+  publicUrl: "" # e.g. "https://api.yourdomain.com"
   clientIpStrategy: "proxy_hops"
   clientIpHeader: ""
   clientIpTrustedProxies: 1
@@ -143,7 +143,7 @@ web:
     repository: "REPLACE_WITH_ECR_REGISTRY/pulsewatch-web"
     tag: "latest"
     pullPolicy: "Always"
-  publicUrl: "https://pulsewatch.example.com"
+  publicUrl: "" # e.g. "https://yourdomain.com"
   service:
     type: ClusterIP
     port: 80
@@ -224,27 +224,30 @@ notificationService:
 # Ingress (AWS ALB Ingress Controller)
 # ------------------------------------------------------------------------------
 ingress:
-  enabled: true
+  enabled: false
   className: "alb"
   annotations:
     alb.ingress.kubernetes.io/scheme: "internet-facing"
     alb.ingress.kubernetes.io/target-type: "ip"
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/ssl-redirect: "443"
     alb.ingress.kubernetes.io/group.name: "pulsewatch-alb"
-    # Supply your ACM Certificate ARN for HTTPS:
-    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-south-1:123456789012:certificate/your-cert-id"
-  hosts:
-    - host: "pulsewatch.example.com"
-      paths:
-        - path: "/"
-          pathType: "Prefix"
-          service: "web"
-          port: 80
-    - host: "api.pulsewatch.example.com"
-      paths:
-        - path: "/"
-          pathType: "Prefix"
-          service: "api"
-          port: 8080
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    # For HTTPS:
+    # alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-south-1:ACCOUNT_ID:certificate/CERT_ID"
+    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    # alb.ingress.kubernetes.io/ssl-redirect: "443"
+  hosts: []
+  # Example host rules:
+  # hosts:
+  #   - host: "yourdomain.com"
+  #     paths:
+  #       - path: "/"
+  #         pathType: "Prefix"
+  #         service: "web"
+  #         port: 80
+  #   - host: "api.yourdomain.com"
+  #     paths:
+  #       - path: "/"
+  #         pathType: "Prefix"
+  #         service: "api"
+  #         port: 8080
   tls: []

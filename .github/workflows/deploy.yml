@@ -142,6 +142,32 @@ jobs:
               ;;
           esac
 
+          # Auto-discover RDS endpoint & credentials from AWS Secrets Manager if provisioned
+          RDS_SECRET=$(aws secretsmanager get-secret-value \
+            --secret-id pulsewatch-eks-rds-credentials \
+            --region ${{ env.AWS_REGION }} \
+            --query SecretString --output text 2>/dev/null || echo "")
+
+          if [ -n "$RDS_SECRET" ] && [ "$RDS_SECRET" != "None" ]; then
+            DB_HOST=$(echo "$RDS_SECRET" | jq -r .host)
+            DB_PASS=$(echo "$RDS_SECRET" | jq -r .password)
+            DB_USER=$(echo "$RDS_SECRET" | jq -r .username)
+            if [ "${{ steps.target.outputs.namespace }}" = "production" ]; then
+              DB_NAME=$(echo "$RDS_SECRET" | jq -r .database_name)
+            else
+              DB_NAME=$(echo "$RDS_SECRET" | jq -r .staging_db_name)
+            fi
+
+            HELM_CMD+=(
+              --set "database.host=${DB_HOST}"
+              --set "database.password=${DB_PASS}"
+              --set "database.user=${DB_USER}"
+              --set "database.dbName=${DB_NAME}"
+              --set "database.sslmode=require"
+            )
+            echo "Successfully discovered and injected RDS database endpoint (${DB_HOST})"
+          fi
+
           HELM_CMD+=(--wait --timeout 10m)
 
           "${HELM_CMD[@]}"

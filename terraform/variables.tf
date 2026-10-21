@@ -91,7 +91,7 @@ variable "node_group_max_size" {
 variable "node_disk_size" {
   description = "Root disk size in GiB for each worker node"
   type        = number
-  default     = 50
+  default     = 20
 }
 
 # ------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ variable "db_allocated_storage" {
 variable "db_max_allocated_storage" {
   description = "Maximum storage limit in GiB for RDS storage autoscaling"
   type        = number
-  default     = 100
+  default     = 50
 }
 
 variable "db_multi_az" {
@@ -204,9 +204,9 @@ variable "deploy_production_helm" {
 }
 
 variable "domain_name" {
-  description = "Base domain name for PulseWatch (e.g. pulsewatch.dev or example.com)"
+  description = "Base domain name for PulseWatch (optional: leave empty if custom domain is not yet configured)"
   type        = string
-  default     = "example.com"
+  default     = ""
 }
 
 variable "staging_domain_name" {

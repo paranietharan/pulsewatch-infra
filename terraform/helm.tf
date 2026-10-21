@@ -67,7 +67,7 @@ resource "helm_release" "aws_load_balancer_controller" {
 # Staging & Production Domain Locals
 # ------------------------------------------------------------------------------
 locals {
-  staging_domain    = var.staging_domain_name != "" ? var.staging_domain_name : "staging.${var.domain_name}"
+  staging_domain    = var.staging_domain_name != "" ? var.staging_domain_name : (var.domain_name != "" ? "staging.${var.domain_name}" : "")
   production_domain = var.production_domain_name != "" ? var.production_domain_name : var.domain_name
 }
 
@@ -93,20 +93,19 @@ resource "helm_release" "pulsewatch_staging" {
         sslmode  = var.enable_rds ? "require" : "disable"
       }
       ingress = {
-        enabled = true
+        enabled = local.staging_domain != ""
         annotations = merge(
           {
             "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
             "alb.ingress.kubernetes.io/target-type" = "ip"
             "alb.ingress.kubernetes.io/group.name"  = "pulsewatch-staging-alb"
-            "alb.ingress.kubernetes.io/listen-ports" = jsonencode([
-              { "HTTP" = 80 },
-              { "HTTPS" = 443 }
-            ])
+            "alb.ingress.kubernetes.io/listen-ports" = jsonencode(
+              var.acm_certificate_arn != "" ? [{ "HTTP" = 80 }, { "HTTPS" = 443 }] : [{ "HTTP" = 80 }]
+            )
           },
           var.acm_certificate_arn != "" ? { "alb.ingress.kubernetes.io/certificate-arn" = var.acm_certificate_arn } : {}
         )
-        hosts = [
+        hosts = local.staging_domain != "" ? [
           {
             host = local.staging_domain
             paths = [
@@ -129,7 +128,7 @@ resource "helm_release" "pulsewatch_staging" {
               }
             ]
           }
-        ]
+        ] : []
       }
     })
   ]
@@ -164,20 +163,19 @@ resource "helm_release" "pulsewatch_production" {
         sslmode  = var.enable_rds ? "require" : "disable"
       }
       ingress = {
-        enabled = true
+        enabled = local.production_domain != ""
         annotations = merge(
           {
             "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
             "alb.ingress.kubernetes.io/target-type" = "ip"
             "alb.ingress.kubernetes.io/group.name"  = "pulsewatch-production-alb"
-            "alb.ingress.kubernetes.io/listen-ports" = jsonencode([
-              { "HTTP" = 80 },
-              { "HTTPS" = 443 }
-            ])
+            "alb.ingress.kubernetes.io/listen-ports" = jsonencode(
+              var.acm_certificate_arn != "" ? [{ "HTTP" = 80 }, { "HTTPS" = 443 }] : [{ "HTTP" = 80 }]
+            )
           },
           var.acm_certificate_arn != "" ? { "alb.ingress.kubernetes.io/certificate-arn" = var.acm_certificate_arn } : {}
         )
-        hosts = [
+        hosts = local.production_domain != "" ? [
           {
             host = local.production_domain
             paths = [
@@ -200,7 +198,7 @@ resource "helm_release" "pulsewatch_production" {
               }
             ]
           }
-        ]
+        ] : []
       }
     })
   ]
