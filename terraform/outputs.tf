@@ -70,12 +70,12 @@ output "alb_controller_role_arn" {
 
 output "staging_namespace" {
   description = "Kubernetes namespace for Staging environment"
-  value       = kubernetes_namespace.staging.metadata[0].name
+  value       = var.staging_namespace
 }
 
 output "production_namespace" {
   description = "Kubernetes namespace for Production environment"
-  value       = kubernetes_namespace.production.metadata[0].name
+  value       = var.production_namespace
 }
 
 output "staging_domain" {
@@ -102,11 +102,11 @@ output "production_database_url" {
 
 output "check_staging_pods_cmd" {
   description = "Command to inspect staging pods"
-  value       = "kubectl get pods -n ${kubernetes_namespace.staging.metadata[0].name}"
+  value       = "kubectl get pods -n ${var.staging_namespace}"
 }
 
 output "check_production_pods_cmd" {
   description = "Command to inspect production pods"
-  value       = "kubectl get pods -n ${kubernetes_namespace.production.metadata[0].name}"
+  value       = "kubectl get pods -n ${var.production_namespace}"
 }
 

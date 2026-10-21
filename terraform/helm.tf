@@ -44,7 +44,7 @@ resource "helm_release" "aws_load_balancer_controller" {
 
   set {
     name  = "serviceAccount.name"
-    value = kubernetes_service_account.aws_load_balancer_controller.metadata[0].name
+    value = "aws-load-balancer-controller"
   }
 
   set {
@@ -78,7 +78,7 @@ resource "helm_release" "pulsewatch_staging" {
   count     = var.deploy_staging_helm ? 1 : 0
   name      = "pulsewatch-staging"
   chart     = "${path.module}/../helm/pulsewatch"
-  namespace = kubernetes_namespace.staging.metadata[0].name
+  namespace = var.staging_namespace
 
   values = [
     file("${path.module}/../helm/pulsewatch/values.yaml"),
@@ -148,7 +148,7 @@ resource "helm_release" "pulsewatch_production" {
   count     = var.deploy_production_helm ? 1 : 0
   name      = "pulsewatch-production"
   chart     = "${path.module}/../helm/pulsewatch"
-  namespace = kubernetes_namespace.production.metadata[0].name
+  namespace = var.production_namespace
 
   values = [
     file("${path.module}/../helm/pulsewatch/values.yaml"),
