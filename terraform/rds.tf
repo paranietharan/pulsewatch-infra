@@ -94,8 +94,8 @@ resource "aws_db_instance" "postgres" {
 
   multi_az            = var.db_multi_az
   publicly_accessible = false
-  skip_final_snapshot = var.environment != "prod"
-  deletion_protection = var.environment == "prod"
+  skip_final_snapshot = true
+  deletion_protection = false
 
   backup_retention_period = var.db_backup_retention_days
   backup_window           = "03:00-04:00"
