@@ -67,6 +67,11 @@ resource "aws_eks_cluster" "main" {
     security_group_ids      = [aws_security_group.cluster.id]
   }
 
+  access_config {
+    authentication_mode                         = "API_AND_CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions = true
+  }
+
   enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
   depends_on = [
@@ -242,3 +247,39 @@ resource "aws_eks_addon" "aws_ebs_csi_driver" {
   service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
   depends_on               = [aws_eks_node_group.main]
 }
+
+# ------------------------------------------------------------------------------
+# EKS Cluster Access Entries (Enables both local admin and CI/CD access)
+# ------------------------------------------------------------------------------
+data "aws_caller_identity" "current" {}
+
+locals {
+  cluster_admin_arns = distinct([
+    data.aws_caller_identity.current.arn,
+    "arn:aws:iam::300052334721:user/parani",
+    "arn:aws:iam::300052334721:user/GITHUB_ACTIONS"
+  ])
+}
+
+resource "aws_eks_access_entry" "admins" {
+  for_each      = toset(local.cluster_admin_arns)
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = each.value
+  type          = "STANDARD"
+
+  depends_on = [aws_eks_cluster.main]
+}
+
+resource "aws_eks_access_policy_association" "admins" {
+  for_each      = toset(local.cluster_admin_arns)
+  cluster_name  = aws_eks_cluster.main.name
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = each.value
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.admins]
+}
+

@@ -19,7 +19,7 @@ resource "kubernetes_service_account" "aws_load_balancer_controller" {
     }
   }
 
-  depends_on = [aws_eks_node_group.main]
+  depends_on = [aws_eks_node_group.main, aws_eks_access_policy_association.admins]
 }
 
 # ------------------------------------------------------------------------------

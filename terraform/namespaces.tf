@@ -17,7 +17,7 @@ resource "kubernetes_namespace" "staging" {
     }
   }
 
-  depends_on = [aws_eks_node_group.main]
+  depends_on = [aws_eks_node_group.main, aws_eks_access_policy_association.admins]
 }
 
 # ------------------------------------------------------------------------------
@@ -34,7 +34,7 @@ resource "kubernetes_namespace" "production" {
     }
   }
 
-  depends_on = [aws_eks_node_group.main]
+  depends_on = [aws_eks_node_group.main, aws_eks_access_policy_association.admins]
 }
 
 # ------------------------------------------------------------------------------
