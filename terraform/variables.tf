@@ -147,9 +147,9 @@ variable "db_multi_az" {
 }
 
 variable "db_backup_retention_days" {
-  description = "Automated daily snapshot retention period in days"
+  description = "Automated daily snapshot retention period in days (0 disables automated snapshots, required for AWS Free Tier)"
   type        = number
-  default     = 7
+  default     = 0
 }
 
 # ------------------------------------------------------------------------------

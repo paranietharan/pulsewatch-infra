@@ -37,6 +37,7 @@ db_password              = ""                    # Leave empty to automatically 
 db_allocated_storage     = 20
 db_max_allocated_storage = 50
 db_multi_az              = false # Set to true for production high availability failover
+db_backup_retention_days = 0     # 0 disables automated snapshots (required for AWS Free Tier accounts)
 
 # ECR Container Registries
 enable_ecr = true
