@@ -103,6 +103,12 @@ variable "enable_rds" {
   default     = true
 }
 
+variable "db_engine_version" {
+  description = "PostgreSQL engine version supported by RDS"
+  type        = string
+  default     = "16.9"
+}
+
 variable "db_instance_class" {
   description = "RDS instance class"
   type        = string

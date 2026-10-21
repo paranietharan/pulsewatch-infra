@@ -29,6 +29,7 @@ enable_namespace_quotas = false
 
 # AWS RDS PostgreSQL
 enable_rds               = true
+db_engine_version        = "16.9"
 db_instance_class        = "db.t3.micro"
 db_name                  = "pulsewatch"          # Production DB name
 staging_db_name          = "pulsewatch_staging"  # Staging DB name

@@ -80,7 +80,7 @@ resource "aws_db_instance" "postgres" {
   count                  = var.enable_rds ? 1 : 0
   identifier             = "${var.cluster_name}-postgres"
   engine                 = "postgres"
-  engine_version         = "16.3"
+  engine_version         = var.db_engine_version
   instance_class         = var.db_instance_class
   allocated_storage      = var.db_allocated_storage
   max_allocated_storage  = var.db_max_allocated_storage
