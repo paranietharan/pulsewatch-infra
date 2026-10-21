@@ -7,10 +7,8 @@
 global:
   environment: "staging"
   logLevel: "debug"
-
 database:
   dbName: "pulsewatch_staging"
-
 # ------------------------------------------------------------------------------
 # Staging Microservice Sizing (Cost-optimized profile)
 # ------------------------------------------------------------------------------
@@ -27,7 +25,9 @@ api:
     limits:
       cpu: 500m
       memory: 256Mi
-
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-api
+    tag: 3ffa170
 web:
   replicaCount: 1
   resources:
@@ -37,7 +37,9 @@ web:
     limits:
       cpu: 500m
       memory: 256Mi
-
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-web
+    tag: 3ffa170
 probeWorker:
   replicaCount: 1
   concurrency: 10
@@ -53,7 +55,9 @@ probeWorker:
     limits:
       cpu: 500m
       memory: 256Mi
-
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-probe-worker
+    tag: 3ffa170
 notificationService:
   replicaCount: 1
   resources:
@@ -63,7 +67,9 @@ notificationService:
     limits:
       cpu: 250m
       memory: 128Mi
-
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-notification-service
+    tag: 3ffa170
 scheduler:
   replicaCount: 1
   pollIntervalSec: 10
@@ -75,7 +81,9 @@ scheduler:
     limits:
       cpu: 250m
       memory: 128Mi
-
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-scheduler
+    tag: 3ffa170
 rabbitmq:
   persistence:
     size: "2Gi"
@@ -86,10 +94,13 @@ rabbitmq:
     limits:
       cpu: 500m
       memory: 512Mi
-
 # ------------------------------------------------------------------------------
 # Staging Ingress & ALB Group
 # ------------------------------------------------------------------------------
 ingress:
   annotations:
     alb.ingress.kubernetes.io/group.name: "pulsewatch-staging-alb"
+migrator:
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-db-migrator
+    tag: 3ffa170
