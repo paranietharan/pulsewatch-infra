@@ -16,7 +16,7 @@ availability_zones = ["ap-south-1a", "ap-south-1b", "ap-south-1c"]
 single_nat_gateway = true # Set to false for full multi-AZ NAT redundancy in critical production
 
 # Worker Node Sizing
-node_instance_types     = ["t3.large"]
+node_instance_types     = ["t3.small"]
 node_group_desired_size = 3
 node_group_min_size     = 2
 node_group_max_size     = 6
