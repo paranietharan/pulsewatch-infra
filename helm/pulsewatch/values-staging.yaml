@@ -29,7 +29,7 @@ api:
       memory: 256Mi
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-api
-    tag: fd81fc5
+    tag: staging
 web:
   replicaCount: 1
   resources:
@@ -41,7 +41,7 @@ web:
       memory: 256Mi
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-web
-    tag: fd81fc5
+    tag: staging
 probeWorker:
   replicaCount: 1
   concurrency: 10
@@ -59,7 +59,7 @@ probeWorker:
       memory: 256Mi
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-probe-worker
-    tag: fd81fc5
+    tag: staging
 notificationService:
   replicaCount: 1
   resources:
@@ -71,7 +71,7 @@ notificationService:
       memory: 128Mi
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-notification-service
-    tag: fd81fc5
+    tag: staging
 scheduler:
   replicaCount: 1
   pollIntervalSec: 10
@@ -85,7 +85,7 @@ scheduler:
       memory: 128Mi
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-scheduler
-    tag: fd81fc5
+    tag: staging
 rabbitmq:
   persistence:
     size: "2Gi"
@@ -120,4 +120,4 @@ ingress:
 migrator:
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-db-migrator
-    tag: fd81fc5
+    tag: staging
