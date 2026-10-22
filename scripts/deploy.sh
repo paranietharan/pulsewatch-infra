@@ -55,6 +55,15 @@ echo "====================================================================="
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 kubectl label namespace "$NAMESPACE" environment="$NAMESPACE" --overwrite || true
 
+# Auto-discover DB password if not provided
+DB_PASS="${DB_PASSWORD:-}"
+if [ -z "$DB_PASS" ]; then
+  DB_SECRET_RAW=$(aws secretsmanager get-secret-value --secret-id "pulsewatch-eks-rds-credentials" --region ap-south-1 --query "SecretString" --output text 2>/dev/null || echo "")
+  if [ -n "$DB_SECRET_RAW" ] && [ "$DB_SECRET_RAW" != "None" ]; then
+    DB_PASS=$(echo "$DB_SECRET_RAW" | jq -r '.password // empty')
+  fi
+fi
+
 HELM_ARGS=(
   upgrade --install "$RELEASE_NAME" "$CHART_PATH"
   --namespace "$NAMESPACE"
@@ -63,6 +72,10 @@ HELM_ARGS=(
   --wait
   --timeout 10m
 )
+
+if [ -n "$DB_PASS" ]; then
+  HELM_ARGS+=(--set "database.password=${DB_PASS}")
+fi
 
 # If custom image tag or ECR registry is specified, inject into Helm
 if [ -n "$IMAGE_TAG" ] && [ "$IMAGE_TAG" != "latest" ]; then

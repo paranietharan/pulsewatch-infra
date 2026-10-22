@@ -8,16 +8,16 @@ environment = "prod"
 
 # EKS Cluster
 cluster_name    = "pulsewatch-eks"
-cluster_version = "1.30"
+cluster_version = "1.31"
 
 # VPC Configuration
 vpc_cidr           = "10.0.0.0/16"
 availability_zones = ["ap-south-1a", "ap-south-1b", "ap-south-1c"]
 single_nat_gateway = true # Set to false for full multi-AZ NAT redundancy in critical production
 
-# Worker Node Sizing
+# Worker Node Sizing (Cost-Effective / Free-Tier profile)
 node_instance_types     = ["t3.small"]
-node_group_desired_size = 3
+node_group_desired_size = 2
 node_group_min_size     = 2
 node_group_max_size     = 6
 node_disk_size          = 20
@@ -49,6 +49,6 @@ staging_domain_name    = ""
 production_domain_name = ""
 acm_certificate_arn    = ""
 
-# Helm Deployment Automation (Set to true to deploy via Terraform, or false to use scripts/CI-CD)
+# Helm Deployment Automation (Set to true to deploy via Terraform, or false to use scripts/CLI)
 deploy_staging_helm    = false
 deploy_production_helm = false
