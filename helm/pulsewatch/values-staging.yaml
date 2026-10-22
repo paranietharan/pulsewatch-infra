@@ -11,6 +11,10 @@ database:
   host: "pulsewatch-eks-postgres.cfy4e4ssuvgk.ap-south-1.rds.amazonaws.com"
   dbName: "pulsewatch_staging"
   sslmode: "require"
+smtp:
+  host: "smtp.resend.com"
+  port: 465
+  from: "PulseWatch Staging <pulsewatch-staging@contact.paranietharan.dev>"
 # ------------------------------------------------------------------------------
 # Staging Microservice Sizing (Cost-optimized profile)
 # ------------------------------------------------------------------------------
@@ -32,6 +36,7 @@ api:
     tag: staging
 web:
   replicaCount: 1
+  publicUrl: "http://k8s-pulsewatchstaging-bec57457a0-766071303.ap-south-1.elb.amazonaws.com"
   resources:
     requests:
       cpu: 100m

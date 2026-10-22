@@ -11,6 +11,10 @@ database:
   host: "pulsewatch-eks-postgres.cfy4e4ssuvgk.ap-south-1.rds.amazonaws.com"
   dbName: "pulsewatch"
   sslmode: "require"
+smtp:
+  host: "smtp.resend.com"
+  port: 465
+  from: "PulseWatch <pulsewatch@contact.paranietharan.dev>"
 # ------------------------------------------------------------------------------
 # Production Microservice Sizing (Optimized for Free/Cost-Effective EKS cluster)
 # ------------------------------------------------------------------------------
@@ -32,6 +36,7 @@ api:
     tag: prod
 web:
   replicaCount: 1
+  publicUrl: "http://k8s-pulsewatchproduct-0f79b93b00-343841861.ap-south-1.elb.amazonaws.com"
   resources:
     requests:
       cpu: 100m
