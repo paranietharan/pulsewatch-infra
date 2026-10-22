@@ -5,6 +5,9 @@ metadata:
   labels:
     {{- include "pulsewatch.labels" . | nindent 4 }}
     app.kubernetes.io/component: api
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/success-codes: "200"
 spec:
   type: {{ .Values.api.service.type | default "ClusterIP" }}
   ports:

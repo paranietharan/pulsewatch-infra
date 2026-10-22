@@ -100,8 +100,23 @@ rabbitmq:
 # Staging Ingress & ALB Group
 # ------------------------------------------------------------------------------
 ingress:
+  enabled: true
+  className: "alb"
   annotations:
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
     alb.ingress.kubernetes.io/group.name: "pulsewatch-staging-alb"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+  hosts:
+    - paths:
+        - path: "/api"
+          pathType: "Prefix"
+          service: "api"
+          port: 8080
+        - path: "/"
+          pathType: "Prefix"
+          service: "web"
+          port: 80
 migrator:
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-db-migrator

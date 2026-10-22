@@ -34,4 +34,5 @@ data:
 
   # Web Dashboard Frontend
   NEXT_PUBLIC_API_BASE_URL: {{ .Values.api.publicUrl | quote }}
+  INTERNAL_API_URL: {{ printf "http://%s-api:8080" (include "pulsewatch.fullname" .) | quote }}
   PORT: "3000"

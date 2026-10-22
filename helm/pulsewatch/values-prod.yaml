@@ -109,6 +109,10 @@ ingress:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
   hosts:
     - paths:
+        - path: "/api"
+          pathType: "Prefix"
+          service: "api"
+          port: 8080
         - path: "/"
           pathType: "Prefix"
           service: "web"
