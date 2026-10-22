@@ -16,6 +16,9 @@ This repository contains the Infrastructure as Code (Terraform) and Helm charts 
    - [Manual Local Deployment (scripts/deploy.sh)](#manual-local-deployment)
 5. [Terraform Infrastructure Management](#-terraform-infrastructure-management)
 6. [Ingress & Cloudflare Domain Setup](#-ingress--cloudflare-domain-setup)
+7. [Stopping (Pausing) & Restoring Infrastructure](#-stopping-pausing--restoring-infrastructure)
+   - [Method A: Quick Hibernate / Pause (Zero Data Loss, 2-Min Resume)](#method-a-quick-hibernate--pause-zero-data-loss-2-minute-restore)
+   - [Method B: Complete Teardown ($0 Cost / Clean Destroy)](#method-b-complete-teardown-0-cost--clean-destroy)
 
 ---
 
@@ -251,3 +254,73 @@ Both namespaces expose an AWS Application Load Balancer (ALB):
    - Set **Proxy status** to **Proxied** (Orange Cloud).
 2. In Cloudflare SSL/TLS:
    - Set encryption mode to **Flexible** (Cloudflare terminates HTTPS and communicates with AWS ALB over port 80).
+
+---
+
+## ⏸ Stopping (Pausing) & Restoring Infrastructure
+
+Depending on how long you plan to pause and your cost objectives, two approaches are available:
+
+---
+
+### Method A: Quick Hibernate / Pause (Zero Data Loss, 2-Minute Restore)
+**Best for:** Overnight breaks, weekends, or pausing active testing for up to 7 days.
+- **Cost Reduction:** Cuts EC2 worker nodes compute to **$0** and RDS PostgreSQL compute to **$0**.
+- **Data Safety:** **100% safe**. All database data, secrets, ECR images, configurations, and state remain intact.
+- **ALB DNS:** Unchanged (no need to update DNS / Cloudflare CNAME records).
+
+#### To Pause (Stop):
+Run the provided helper script:
+```bash
+./scripts/pause-cluster.sh
+```
+*Under the hood, this:*
+1. Stops the RDS instance: `aws rds stop-db-instance --db-instance-identifier pulsewatch-eks-postgres --region ap-south-1`
+2. Scales EKS Node Group to 0: `aws eks update-nodegroup-config --cluster-name pulsewatch-eks --nodegroup-name pulsewatch-eks-nodegroup --scaling-config minSize=0,desiredSize=0,maxSize=0 --region ap-south-1`
+
+#### To Restore:
+Run the resume helper script:
+```bash
+./scripts/resume-cluster.sh
+```
+*Under the hood, this:*
+1. Starts the RDS instance: `aws rds start-db-instance --db-instance-identifier pulsewatch-eks-postgres --region ap-south-1`
+2. Scales EKS Node Group back: `aws eks update-nodegroup-config --cluster-name pulsewatch-eks --nodegroup-name pulsewatch-eks-nodegroup --scaling-config minSize=2,desiredSize=2,maxSize=6 --region ap-south-1`
+3. Waits for EC2 worker nodes to join the cluster. Once Ready, Kubernetes automatically re-schedules all pods back to `Running` without any manual deployment!
+
+---
+
+### Method B: Complete Teardown ($0 Cost / Clean Destroy)
+**Best for:** Inactive for weeks or months where you want to eliminate 100% of AWS costs (including EKS control plane ~$73/month and ALB fees).
+
+#### To Stop (Destroy):
+1. **Take a final database snapshot (Crucial for zero data loss):**
+   ```bash
+   aws rds create-db-snapshot \
+     --db-instance-identifier pulsewatch-eks-postgres \
+     --db-snapshot-identifier "pulsewatch-postgres-backup-$(date +%Y%m%d)" \
+     --region ap-south-1
+   ```
+2. **Uninstall Helm releases (Cleanly removes AWS Application Load Balancers):**
+   ```bash
+   helm uninstall pulsewatch-production -n production
+   helm uninstall pulsewatch-staging -n staging
+   ```
+3. **Destroy Terraform infrastructure:**
+   ```bash
+   cd terraform
+   terraform destroy -auto-approve
+   ```
+
+#### To Restore:
+1. **Re-provision AWS Infrastructure:**
+   ```bash
+   cd terraform
+   terraform apply -auto-approve
+   ```
+2. **Connect kubectl:**
+   ```bash
+   aws eks update-kubeconfig --region ap-south-1 --name pulsewatch-eks
+   ```
+3. **Redeploy PulseWatch Workloads:**
+   Run `./scripts/deploy.sh production` and `./scripts/deploy.sh staging`, or trigger the GitHub Actions workflow `deploy.yml`.
