@@ -36,7 +36,7 @@ api:
     tag: prod
 web:
   replicaCount: 1
-  publicUrl: "http://k8s-pulsewatchproduct-0f79b93b00-343841861.ap-south-1.elb.amazonaws.com"
+  publicUrl: "http://k8s-pulsewatchproduct-0f79b93b00-993002051.ap-south-1.elb.amazonaws.com"
   resources:
     requests:
       cpu: 100m

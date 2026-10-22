@@ -36,7 +36,7 @@ api:
     tag: staging
 web:
   replicaCount: 1
-  publicUrl: "http://k8s-pulsewatchstaging-bec57457a0-766071303.ap-south-1.elb.amazonaws.com"
+  publicUrl: "http://k8s-pulsewatchstaging-bec57457a0-548697515.ap-south-1.elb.amazonaws.com"
   resources:
     requests:
       cpu: 100m

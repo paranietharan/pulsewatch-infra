@@ -8,7 +8,7 @@ environment = "prod"
 
 # EKS Cluster
 cluster_name    = "pulsewatch-eks"
-cluster_version = "1.31"
+cluster_version = "1.37"
 
 # VPC Configuration
 vpc_cidr           = "10.0.0.0/16"

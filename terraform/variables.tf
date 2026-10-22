@@ -61,7 +61,7 @@ variable "cluster_name" {
 variable "cluster_version" {
   description = "Kubernetes control plane version"
   type        = string
-  default     = "1.31"
+  default     = "1.37"
 }
 
 variable "node_instance_types" {
@@ -73,7 +73,7 @@ variable "node_instance_types" {
 variable "node_group_desired_size" {
   description = "Initial desired worker node capacity"
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "node_group_min_size" {
