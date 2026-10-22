@@ -14,10 +14,16 @@ override.tf.json
 terraform.rc
 .terraform.lock.hcl
 *.tfplan
+backend.conf
+*.env
+*.env.*
 
 # Helm & Kubernetes Local Outputs
 *.tgz
 kubeconfig
+*.pem
+*.key
+*.crt
 
 # OS & Editor Files
 .DS_Store
