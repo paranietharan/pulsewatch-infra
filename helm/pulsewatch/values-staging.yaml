@@ -8,7 +8,9 @@ global:
   environment: "staging"
   logLevel: "debug"
 database:
+  host: "pulsewatch-eks-postgres.cfy4e4ssuvgk.ap-south-1.rds.amazonaws.com"
   dbName: "pulsewatch_staging"
+  sslmode: "require"
 # ------------------------------------------------------------------------------
 # Staging Microservice Sizing (Cost-optimized profile)
 # ------------------------------------------------------------------------------

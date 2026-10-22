@@ -8,6 +8,7 @@ global:
   environment: "production"
   logLevel: "info"
 database:
+  host: "pulsewatch-eks-postgres.cfy4e4ssuvgk.ap-south-1.rds.amazonaws.com"
   dbName: "pulsewatch"
   sslmode: "require"
 # ------------------------------------------------------------------------------
