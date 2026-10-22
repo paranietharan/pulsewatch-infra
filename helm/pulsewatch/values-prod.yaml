@@ -7,11 +7,9 @@
 global:
   environment: "production"
   logLevel: "warn"
-
 database:
   dbName: "pulsewatch"
   sslmode: "require"
-
 # ------------------------------------------------------------------------------
 # Production Microservice Sizing (High-Availability & Auto-scaling profile)
 # ------------------------------------------------------------------------------
@@ -29,7 +27,9 @@ api:
     limits:
       cpu: 1000m
       memory: 1Gi
-
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-api
+    tag: fd81fc5
 web:
   replicaCount: 3
   resources:
@@ -39,7 +39,9 @@ web:
     limits:
       cpu: 1000m
       memory: 512Mi
-
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-web
+    tag: fd81fc5
 probeWorker:
   replicaCount: 5
   concurrency: 50
@@ -55,7 +57,9 @@ probeWorker:
     limits:
       cpu: 1500m
       memory: 1Gi
-
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-probe-worker
+    tag: fd81fc5
 notificationService:
   replicaCount: 3
   resources:
@@ -65,7 +69,9 @@ notificationService:
     limits:
       cpu: 500m
       memory: 256Mi
-
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-notification-service
+    tag: fd81fc5
 scheduler:
   replicaCount: 1
   pollIntervalSec: 5
@@ -77,7 +83,9 @@ scheduler:
     limits:
       cpu: 500m
       memory: 256Mi
-
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-scheduler
+    tag: fd81fc5
 rabbitmq:
   persistence:
     size: "5Gi"
@@ -88,10 +96,13 @@ rabbitmq:
     limits:
       cpu: 2000m
       memory: 2Gi
-
 # ------------------------------------------------------------------------------
 # Production Ingress & ALB Group
 # ------------------------------------------------------------------------------
 ingress:
   annotations:
     alb.ingress.kubernetes.io/group.name: "pulsewatch-production-alb"
+migrator:
+  image:
+    repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-db-migrator
+    tag: fd81fc5
