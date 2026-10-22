@@ -18,11 +18,13 @@ CHART_PATH="helm/pulsewatch"
 case "$ENV_TARGET" in
   staging|stage)
     NAMESPACE="staging"
+    ENV_SHORT="staging"
     RELEASE_NAME="pulsewatch-staging"
     ENV_VALUES="helm/pulsewatch/values-staging.yaml"
     ;;
   production|prod)
     NAMESPACE="production"
+    ENV_SHORT="prod"
     RELEASE_NAME="pulsewatch-production"
     ENV_VALUES="helm/pulsewatch/values-prod.yaml"
     ;;
@@ -75,6 +77,34 @@ HELM_ARGS=(
 
 if [ -n "$DB_PASS" ]; then
   HELM_ARGS+=(--set "database.password=${DB_PASS}")
+fi
+
+# Auto-discover SMTP credentials from AWS Secrets Manager if available
+SMTP_SECRET_RAW=$(aws secretsmanager get-secret-value --secret-id "pulsewatch-${ENV_SHORT}-smtp-credentials" --region ap-south-1 --query "SecretString" --output text 2>/dev/null || echo "")
+if [ -n "$SMTP_SECRET_RAW" ] && [ "$SMTP_SECRET_RAW" != "None" ]; then
+  RESOLVED_SMTP_USER=$(echo "$SMTP_SECRET_RAW" | jq -r '.user // empty')
+  RESOLVED_SMTP_PASS=$(echo "$SMTP_SECRET_RAW" | jq -r '.password // empty')
+  RESOLVED_SMTP_HOST=$(echo "$SMTP_SECRET_RAW" | jq -r '.host // empty')
+  RESOLVED_SMTP_PORT=$(echo "$SMTP_SECRET_RAW" | jq -r '.port // empty')
+  RESOLVED_SMTP_FROM=$(echo "$SMTP_SECRET_RAW" | jq -r '.from // empty')
+
+  [ -n "$RESOLVED_SMTP_USER" ] && HELM_ARGS+=(--set "smtp.user=${RESOLVED_SMTP_USER}")
+  [ -n "$RESOLVED_SMTP_PASS" ] && HELM_ARGS+=(--set "smtp.password=${RESOLVED_SMTP_PASS}")
+  [ -n "$RESOLVED_SMTP_HOST" ] && HELM_ARGS+=(--set "smtp.host=${RESOLVED_SMTP_HOST}")
+  [ -n "$RESOLVED_SMTP_PORT" ] && HELM_ARGS+=(--set "smtp.port=${RESOLVED_SMTP_PORT}")
+  [ -n "$RESOLVED_SMTP_FROM" ] && HELM_ARGS+=(--set "smtp.from=${RESOLVED_SMTP_FROM}")
+  echo "--> Injected SMTP credentials from AWS Secrets Manager (pulsewatch-${ENV_SHORT}-smtp-credentials)"
+fi
+
+# Auto-discover JWT secret from AWS Secrets Manager if available
+JWT_SECRET_RAW=$(aws secretsmanager get-secret-value --secret-id "pulsewatch-${ENV_SHORT}-jwt-secret" --region ap-south-1 --query "SecretString" --output text 2>/dev/null || echo "")
+if [ -n "$JWT_SECRET_RAW" ] && [ "$JWT_SECRET_RAW" != "None" ]; then
+  RESOLVED_JWT_SECRET=$(echo "$JWT_SECRET_RAW" | jq -r '.jwt_secret // .secret // empty' 2>/dev/null || echo "")
+  if [ -z "$RESOLVED_JWT_SECRET" ]; then
+    RESOLVED_JWT_SECRET="$JWT_SECRET_RAW"
+  fi
+  HELM_ARGS+=(--set "api.jwtSecret=${RESOLVED_JWT_SECRET}")
+  echo "--> Injected JWT secret from AWS Secrets Manager (pulsewatch-${ENV_SHORT}-jwt-secret)"
 fi
 
 # If custom image tag or ECR registry is specified, inject into Helm
