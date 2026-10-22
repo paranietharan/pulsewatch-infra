@@ -286,8 +286,8 @@ data "aws_caller_identity" "current" {}
 locals {
   cluster_admin_arns = distinct([
     data.aws_caller_identity.current.arn,
-    "arn:aws:iam::300052334721:user/parani",
-    "arn:aws:iam::300052334721:user/GITHUB_ACTIONS"
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/parani",
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/GITHUB_ACTIONS"
   ])
 }
 
