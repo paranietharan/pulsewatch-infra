@@ -6,102 +6,110 @@
 
 global:
   environment: "production"
-  logLevel: "warn"
+  logLevel: "info"
+
 database:
   dbName: "pulsewatch"
   sslmode: "require"
+
 # ------------------------------------------------------------------------------
-# Production Microservice Sizing (High-Availability & Auto-scaling profile)
+# Production Microservice Sizing (Optimized for Free/Cost-Effective EKS cluster)
 # ------------------------------------------------------------------------------
 api:
-  replicaCount: 3
+  replicaCount: 1
   autoscaling:
-    minReplicas: 3
-    maxReplicas: 15
-    targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 75
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
   resources:
     requests:
-      cpu: 250m
-      memory: 512Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
-      cpu: 1000m
-      memory: 1Gi
+      cpu: 500m
+      memory: 256Mi
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-api
     tag: fd81fc5
+
 web:
-  replicaCount: 3
+  replicaCount: 1
   resources:
     requests:
-      cpu: 250m
-      memory: 256Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
-      cpu: 1000m
-      memory: 512Mi
+      cpu: 500m
+      memory: 256Mi
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-web
     tag: fd81fc5
+
 probeWorker:
-  replicaCount: 5
-  concurrency: 50
-  prefetch: 50
+  replicaCount: 1
+  concurrency: 15
+  prefetch: 15
   autoscaling:
-    minReplicas: 5
-    maxReplicas: 30
-    targetCPUUtilizationPercentage: 75
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
   resources:
     requests:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
-      cpu: 1500m
-      memory: 1Gi
+      cpu: 500m
+      memory: 256Mi
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-probe-worker
     tag: fd81fc5
+
 notificationService:
-  replicaCount: 3
+  replicaCount: 1
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 50m
+      memory: 64Mi
     limits:
-      cpu: 500m
-      memory: 256Mi
+      cpu: 250m
+      memory: 128Mi
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-notification-service
     tag: fd81fc5
+
 scheduler:
   replicaCount: 1
   pollIntervalSec: 5
-  batchSize: 100
+  batchSize: 50
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 50m
+      memory: 64Mi
     limits:
-      cpu: 500m
-      memory: 256Mi
+      cpu: 250m
+      memory: 128Mi
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-scheduler
     tag: fd81fc5
+
 rabbitmq:
   persistence:
-    size: "5Gi"
+    size: "2Gi"
   resources:
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 100m
+      memory: 256Mi
     limits:
-      cpu: 2000m
-      memory: 2Gi
+      cpu: 500m
+      memory: 512Mi
+
 # ------------------------------------------------------------------------------
 # Production Ingress & ALB Group
 # ------------------------------------------------------------------------------
 ingress:
   annotations:
     alb.ingress.kubernetes.io/group.name: "pulsewatch-production-alb"
+
 migrator:
   image:
     repository: 300052334721.dkr.ecr.ap-south-1.amazonaws.com/pulsewatch-db-migrator
