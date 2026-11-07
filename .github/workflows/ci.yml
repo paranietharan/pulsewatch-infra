@@ -1,0 +1,33 @@
+name: CI
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: [terraform, terraform/backend_setup]
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.16.6'
+      - run: terraform fmt -check
+      - run: terraform init -backend=false -input=false -lockfile=readonly
+      - run: terraform validate
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4.3.1
+        with:
+          version: v4.3.1
+      - run: |
+          for values in values.yaml values-staging.yaml values-prod.yaml; do
+            helm lint helm/pulsewatch -f "helm/pulsewatch/$values"
+            helm template ci helm/pulsewatch -f "helm/pulsewatch/$values" >/dev/null
+          done
