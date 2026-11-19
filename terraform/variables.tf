@@ -233,3 +233,9 @@ variable "acm_certificate_arn" {
   default     = ""
 }
 
+
+variable "production_image_digests" {
+  description = "ECR sha256 digests keyed by api, web, scheduler, probeWorker, notificationService and migrator for a production release."
+  type        = map(string)
+  default     = {}
+}

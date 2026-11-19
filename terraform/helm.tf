@@ -153,6 +153,7 @@ resource "helm_release" "pulsewatch_production" {
   values = [
     file("${path.module}/../helm/pulsewatch/values.yaml"),
     file("${path.module}/../helm/pulsewatch/values-prod.yaml"),
+    yamlencode({ for component, digest in var.production_image_digests : component => { image = { digest = digest } } }),
     yamlencode({
       database = {
         host     = var.enable_rds ? aws_db_instance.postgres[0].address : "pulsewatch-postgresql"

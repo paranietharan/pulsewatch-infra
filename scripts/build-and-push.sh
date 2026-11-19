@@ -37,9 +37,13 @@ echo "--> Logging into Amazon ECR..."
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
 # Define microservices to build: "service_name:build_context:dockerfile_path"
+WEB_SOURCE_DIR="${WEB_SOURCE_DIR:-${SOURCE_DIR}/pulse-watch-web}"
+if [[ ! -f "$WEB_SOURCE_DIR/Dockerfile" ]]; then
+  WEB_SOURCE_DIR="${SOURCE_DIR}/../pulse-watch-web"
+fi
 SERVICES=(
   "pulsewatch-api:${SOURCE_DIR}/pulsewatch-api:${SOURCE_DIR}/pulsewatch-api/Dockerfile"
-  "pulsewatch-web:${SOURCE_DIR}/pulse-watch-web:${SOURCE_DIR}/pulse-watch-web/Dockerfile"
+  "pulsewatch-web:${WEB_SOURCE_DIR}:${WEB_SOURCE_DIR}/Dockerfile"
   "pulsewatch-scheduler:${SOURCE_DIR}/pulsewatch-scheduler:${SOURCE_DIR}/pulsewatch-scheduler/Dockerfile"
   "pulsewatch-probe-worker:${SOURCE_DIR}/pulsewatch-probe-worker:${SOURCE_DIR}/pulsewatch-probe-worker/Dockerfile"
   "pulsewatch-notification-service:${SOURCE_DIR}/pulsewatch-notification-service:${SOURCE_DIR}/pulsewatch-notification-service/Dockerfile"

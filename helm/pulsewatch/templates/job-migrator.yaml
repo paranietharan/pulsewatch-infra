@@ -36,7 +36,7 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ .Values.migrator.image.repository }}:{{ .Values.migrator.image.tag | default .Chart.AppVersion }}"
+          image: {{ include "pulsewatch.image" (dict "image" .Values.migrator.image "requireDigest" .Values.requireImageDigests "appVersion" .Chart.AppVersion) | quote }}
           imagePullPolicy: {{ .Values.migrator.image.pullPolicy | default "IfNotPresent" }}
           command: ["/app/pulsewatch-migrator", "up"]
           env:

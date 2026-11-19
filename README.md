@@ -99,3 +99,7 @@ sleep 45
 cd terraform
 terraform destroy
 ```
+
+### Production image identity
+
+Build and push the six application images under a commit tag. Pass that tag to `scripts/deploy.sh production <commit-tag> [ecr-registry]`. The script resolves each digest before upgrading Helm. Terraform deployments supply the six digests in `production_image_digests`. Inspect them with `helm get manifest pulsewatch-production -n production`. To restore a prior digest-pinned release, find its revision with `helm history pulsewatch-production -n production` and use `helm rollback pulsewatch-production REVISION -n production`.
