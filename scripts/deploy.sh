@@ -23,6 +23,10 @@ case "$ENV_TARGET" in
     ENV_VALUES="helm/pulsewatch/values-staging.yaml"
     ;;
   production|prod)
+    if [[ ! "$IMAGE_TAG" =~ ^(sha-)?[a-fA-F0-9]{7,64}$ ]]; then
+      echo "Production requires an explicit commit image tag" >&2
+      exit 1
+    fi
     NAMESPACE="production"
     ENV_SHORT="prod"
     RELEASE_NAME="pulsewatch-production"
@@ -128,6 +132,20 @@ if [ -n "$ECR_REGISTRY" ]; then
     --set notificationService.image.repository="${ECR_REGISTRY}/pulsewatch-notification-service"
     --set migrator.image.repository="${ECR_REGISTRY}/pulsewatch-db-migrator"
   )
+fi
+
+if [[ "$ENV_SHORT" == prod ]]; then
+  components=(api web scheduler probeWorker notificationService migrator)
+  repositories=(pulsewatch-api pulsewatch-web pulsewatch-scheduler pulsewatch-probe-worker pulsewatch-notification-service pulsewatch-db-migrator)
+  registry="${ECR_REGISTRY:-300052334721.dkr.ecr.ap-south-1.amazonaws.com}"
+  account="${registry%%.*}"
+  region="$(cut -d. -f4 <<< "$registry")"
+  for i in "${!components[@]}"; do
+    digest="$(aws ecr describe-images --registry-id "$account" --region "$region" \
+      --repository-name "${repositories[i]}" --image-ids "imageTag=$IMAGE_TAG" \
+      --query 'imageDetails[0].imageDigest' --output text)"
+    HELM_ARGS+=(--set-string "${components[i]}.image.digest=$digest")
+  done
 fi
 
 echo "--> Executing Helm rollout..."

@@ -37,7 +37,7 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ .Values.scheduler.image.repository }}:{{ .Values.scheduler.image.tag | default .Chart.AppVersion }}"
+          image: {{ include "pulsewatch.image" (dict "image" .Values.scheduler.image "requireDigest" .Values.requireImageDigests "appVersion" .Chart.AppVersion) | quote }}
           imagePullPolicy: {{ .Values.scheduler.image.pullPolicy | default "IfNotPresent" }}
           env:
             - name: DATABASE_URL

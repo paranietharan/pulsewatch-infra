@@ -42,7 +42,7 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag | default .Chart.AppVersion }}"
+          image: {{ include "pulsewatch.image" (dict "image" .Values.api.image "requireDigest" .Values.requireImageDigests "appVersion" .Chart.AppVersion) | quote }}
           imagePullPolicy: {{ .Values.api.image.pullPolicy | default "IfNotPresent" }}
           ports:
             - name: http

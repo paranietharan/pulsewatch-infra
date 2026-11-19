@@ -28,6 +28,12 @@ jobs:
           version: v4.3.1
       - run: |
           for values in values.yaml values-staging.yaml values-prod.yaml; do
-            helm lint helm/pulsewatch -f "helm/pulsewatch/$values"
-            helm template ci helm/pulsewatch -f "helm/pulsewatch/$values" >/dev/null
+            args=()
+            if [[ "$values" == values-prod.yaml ]]; then
+              for component in api web scheduler probeWorker notificationService migrator; do
+                args+=(--set-string "$component.image.digest=sha256:$(printf '%064d' 1)")
+              done
+            fi
+            helm lint helm/pulsewatch -f "helm/pulsewatch/$values" "${args[@]}"
+            helm template ci helm/pulsewatch -f "helm/pulsewatch/$values" "${args[@]}" >/dev/null
           done

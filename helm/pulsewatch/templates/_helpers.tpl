@@ -71,3 +71,16 @@ amqp://{{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }}
 {{ .Values.rabbitmq.externalUrl }}
 {{- end -}}
 {{- end }}
+
+{{/* Production images require a digest so Helm history identifies the exact artifact. */}}
+{{- define "pulsewatch.image" -}}
+{{- $image := .image -}}
+{{- if or .requireDigest $image.digest -}}
+{{- if not (regexMatch "^sha256:[a-f0-9]{64}$" (default "" $image.digest)) -}}
+{{- fail (printf "valid image digest required for %s" $image.repository) -}}
+{{- end -}}
+{{- printf "%s@%s" $image.repository $image.digest -}}
+{{- else -}}
+{{- printf "%s:%s" $image.repository (default .appVersion $image.tag) -}}
+{{- end -}}
+{{- end -}}
